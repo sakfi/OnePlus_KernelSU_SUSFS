@@ -249,6 +249,8 @@ runs:
         set -euo pipefail
         CONFIG="$OP_MODEL"
         echo "CONFIG=$CONFIG" >> "$GITHUB_ENV"
+        # Set safe default for NEED_HOOKS so it is always defined
+        echo "NEED_HOOKS=false" >> "$GITHUB_ENV"
         REPO="/usr/local/bin/repo"
         if [ ! -x "$REPO" ]; then
           curl -s https://storage.googleapis.com/git-repo-downloads/repo -o "$REPO"
@@ -656,11 +658,15 @@ runs:
           
           cd susfs4ksu
           
+          # Fetch all remote branches so non-default branches (e.g. gki-android15-6.6) are resolvable
+          echo "🔄 Fetching all remote branches..."
+          git fetch --all --prune
+          
           # Try to checkout the specified branch/commit
           if git rev-parse --verify "origin/$SUSFS_BRANCH" >/dev/null 2>&1; then
             # It's a remote branch
             echo "✅ Checking out remote branch: $SUSFS_BRANCH"
-            git checkout "$SUSFS_BRANCH"
+            git checkout -b "$SUSFS_BRANCH" "origin/$SUSFS_BRANCH"
           elif git rev-parse --verify "$SUSFS_BRANCH" >/dev/null 2>&1; then
             # It's a local ref or commit hash
             echo "✅ Checking out ref/commit: $SUSFS_BRANCH"
@@ -1333,8 +1339,8 @@ runs:
         
         make O="$OUT" olddefconfig
         
-        KCFLAGS="$KCFLAGS -Wno-error -pipe -fno-stack-protector ${KCFLAGS_EXTRA}"
-        KCPPFLAGS="$KCPPFLAGS -DCONFIG_OPTIMIZE_INLINING"
+        KCFLAGS="${KCFLAGS:-} -Wno-error -pipe -fno-stack-protector ${KCFLAGS_EXTRA}"
+        KCPPFLAGS="${KCPPFLAGS:-} -DCONFIG_OPTIMIZE_INLINING"
         
         echo "============================================"
         echo "🔧 Build Configuration"
@@ -1470,6 +1476,9 @@ runs:
           IMG="$KERNEL_PLATFORM_FOLDER/bazel-bin/common/kernel_aarch64/Image"
         fi
         
+        # Share the resolved image path so Create Kernel ZIP uses the same one
+        echo "RESOLVED_IMAGE_PATH=$IMG" >> "$GITHUB_ENV"
+        
         if [ -f "$COMMON_KERNEL_FOLDER/build.log" ]; then
           WARNINGS_COUNT="$(grep -ciE '\bwarning:' "$COMMON_KERNEL_FOLDER/build.log" || true)"
           [ -n "$WARNINGS_COUNT" ] || WARNINGS_COUNT="0"
@@ -1520,13 +1529,8 @@ runs:
         set -euo pipefail
         echo "::group::Create kernel ZIP package"
         
-        IMAGE_PATH="$COMMON_KERNEL_FOLDER/out/arch/arm64/boot/Image"
-        
-        if [ -f "$KERNEL_PLATFORM_FOLDER/out/$OP_ANDROID_VERSION-$OP_KERNEL_VERSION/dist/Image" ]; then
-          IMAGE_PATH="$KERNEL_PLATFORM_FOLDER/out/$OP_ANDROID_VERSION-$OP_KERNEL_VERSION/dist/Image"
-        elif [ -f "$KERNEL_PLATFORM_FOLDER/bazel-bin/common/kernel_aarch64/Image" ]; then
-          IMAGE_PATH="$KERNEL_PLATFORM_FOLDER/bazel-bin/common/kernel_aarch64/Image"
-        fi
+        # Reuse the image path resolved by Collect Build Stats to avoid divergence
+        IMAGE_PATH="${RESOLVED_IMAGE_PATH:-$COMMON_KERNEL_FOLDER/out/arch/arm64/boot/Image}"
         
         if [ ! -f "$IMAGE_PATH" ]; then
           echo "::error::Built Image not found at: $IMAGE_PATH"
