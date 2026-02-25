@@ -1,66 +1,118 @@
-# Wild Kernels for Android
+# OP_KSUN_FS
 
-## Your warranty is no longer valid!
-
-I am **not responsible** for bricked devices, damaged hardware, or any issues that arise from using this kernel.
-
-**Please** do thorough research and fully understand the features included in this kernel before flashing it!
-
-By flashing this kernel, **YOU** are choosing to make these modifications. If something goes wrong, **do not blame me**!
+> A GitHub Actions build toolkit for **KernelSU-Next + SUSFS** on OnePlus GKI devices.  
+> Maintained by **[sakfi](https://github.com/sakfi)** · Forked from [WildKernels/OnePlus_KernelSU_SUSFS](https://github.com/WildKernels/OnePlus_KernelSU_SUSFS)
 
 ---
 
-### Proceed at your own risk!
+## ⚠️ Disclaimer
+
+### Your warranty is no longer valid!
+
+I am **not responsible** for bricked devices, damaged hardware, or any issues that arise from using this kernel.
+
+**Please** do thorough research and fully understand the features included before flashing!
+
+By flashing this kernel, **YOU** are choosing to make these modifications. If something goes wrong, **do not blame me**!
 
 <table>
   <tr>
     <th> :warning: </th>
-    <th> Verify <a href="https://github.com/WildKernels/OnePlus_KernelSU_SUSFS/blob/main/compatibility.md">Compatibility</a> of kernels before flashing. </th>
+    <th> Verify compatibility of your device and OxygenOS version before flashing. </th>
   </tr>
 </table>
 
----
-
-# Kernels:
- 
-[GKI](https://github.com/WildKernels/GKI_KernelSU_SUSFS)  
-[Sultan](https://github.com/WildKernels/Sultan_KernelSU_SUSFS)  
-[OnePlus](https://github.com/WildKernels/OnePlus_KernelSU_SUSFS)  
-[Legacy Pixels](https://github.com/WildKernels/Pixel_KernelSU_SUSFS)  
+**Proceed at your own risk!**
 
 ---
 
-# Other Links:
+## 🚀 What This Does
 
-[Kernel Patches](https://github.com/WildKernels/kernel_patches)  
-[Old Build Scripts](https://github.com/TheWildJames/kernel_build_scripts)  
-[Kernel Flasher - fatalcoder524 fork](https://github.com/fatalcoder524/KernelFlasher)  
-[Horizon Kernel Flasher](https://github.com/libxzr/HorizonKernelFlasher)  
+This repository provides a fully automated GitHub Actions workflow that:
 
----
-
-# Installation instructions: 
-
-Follow the steps for GKI:  
-[Installation](https://kernelsu.org/guide/installation.html)
-
-To get boot.img format:  
-[Get My Kernel Format](https://github.com/TheWildJames/Get_My_Kernel_Format)
+- Clones the OnePlus GKI kernel source via `repo sync`
+- Integrates **KernelSU-Next (KSUN)** or **KernelSU (KSU)**
+- Applies **SUSFS** patches for advanced root hiding
+- Applies a curated set of performance & optimization patches
+- Builds and packages a flashable **AnyKernel3 ZIP**
+- Supports all major OnePlus OxygenOS versions (OOS14, OOS15, OOS16)
 
 ---
 
-# Features
+## 📦 Features
 
-- **KernelSU**: KernelSU is a root solution for Android GKI devices, it works in kernel mode and grants root permission to userspace applications directly in kernel space.
-- **SUSFS**: An addon root hiding kernel patches and userspace module for KernelSU.
+- **KernelSU-Next** — Next-generation kernel-level root solution
+- **SUSFS v2.0.0** — Advanced root hiding with Magic Mount support
+- **Manual Hooks** — `scope_min_manual_hooks_v1.4` for better app compatibility
+- **BBR** — Improved TCP congestion control
+- **BBG** — LSM-based Baseband Guard security
+- **TTL Target Support** — Network packet manipulation
+- **IP Set Support** — Advanced firewall capabilities
+- **HMBIRD SCX** — Scheduler extensions for SM8750 devices
+- **LTO** — Link Time Optimization (thin/full/none configurable)
+- **TMPFS XATTR / POSIX ACL** — Extended attributes for Mountify support
+- **Optimization patches** — Memory, I/O, CPU scheduler, network tuning
+
+### SUSFS Hide Capabilities
+- ✅ SUS_PATH · SUS_MOUNT · SUS_KSTAT · SUS_MAP
+- ✅ SPOOF_UNAME · SPOOF_CMDLINE · OPEN_REDIRECT · AVC_SPOOF
 
 ---
 
-# Credits
+## 📱 Supported Devices
+
+Device configs are located in [`configs/`](./configs/). Devices are grouped by OxygenOS version:
+
+| OOS Version | Kernel | Example Devices |
+|-------------|--------|-----------------|
+| OOS14 | android12 (5.10) / android13 (5.15) / android14 (6.1) | OP10 Pro, OP11, OP12, OP-ACE series |
+| OOS15 | android13 (5.15) / android14 (6.1) / android15 (6.6) | OP12, OP13, OP13S, OP-ACE-5, OP-NORD series, OP-PAD series |
+| OOS16 | android14 (6.1) / android15 (6.6) / android16 (6.12) | OP13, OP-ACE-5 series, OP-PAD series |
+
+> Full device list: browse the [`configs/`](./configs/) folder.
+
+---
+
+## 🔨 How to Build
+
+1. **Fork or use this repository** on your own GitHub account
+2. Go to **Actions** → **Build and Release OnePlus Kernels**
+3. Click **Run workflow** and fill in the inputs:
+
+| Input | Description | Default |
+|-------|-------------|---------|
+| `op_model` | Target device group (e.g. `OOS14+15+16`, `android15-6.6`) | `OOS14+15+16` |
+| `ksu_options` | KernelSU type + hash (JSON) | `[{"type":"ksun","hash":"dev"}]` |
+| `optimize_level` | Compiler optimization (`O2` or `O3`) | `O2` |
+| `clean_build` | Bypass ccache for a fresh build | `false` |
+| `make_release` | Create a GitHub Release with artifacts | `false` |
+| `android15-6_6_susfs_...` | Override SUSFS branch per kernel version | *(auto)* |
+
+---
+
+## 📥 Installation
+
+### Prerequisites
+- Unlocked bootloader
+- A backup of your current boot image
+- Any root solution already installed (Magisk / KernelSU / APatch)
+
+### Steps
+1. Download the AnyKernel3 ZIP for your device from the [Releases](../../releases) page
+2. Flash using [Kernel Flasher](https://github.com/fatalcoder524/KernelFlasher) or [Horizon Kernel Flasher](https://github.com/libxzr/HorizonKernelFlasher)
+3. Reboot
+4. Install **KernelSU-Next Manager** → [Releases](https://github.com/KernelSU-Next/KernelSU-Next/releases)
+5. Install **SUSFS Module** from within the manager → [sidex15/ksu_module_susfs](https://github.com/sidex15/ksu_module_susfs/releases)
+
+> For GKI installation details: [kernelsu.org/guide/installation](https://kernelsu.org/guide/installation.html)
+
+---
+
+## 🙏 Credits
 
 - **KernelSU**: Developed by [tiann](https://github.com/tiann/KernelSU).
 - **KernelSU-Next**: Developed by [rifsxd](https://github.com/KernelSU-Next/KernelSU-Next).
-- **Magic-KSU**: Developed by [5ec1cff](https://github.com/5ec1cff/KernelSU).  
+- **Magic-KSU**: Developed by [5ec1cff](https://github.com/5ec1cff/KernelSU).
 - **SUSFS**: Developed by [simonpunk](https://gitlab.com/simonpunk/susfs4ksu.git).
 - **SUSFS Module**: Developed by [sidex15](https://github.com/sidex15).
 - **Sultan Kernels**: Developed by [kerneltoast](https://github.com/kerneltoast).
@@ -69,24 +121,8 @@ Special thanks to the open-source community for their contributions!
 
 ---
 
-# Support
+## 🌟 Special thanks to the following people for their contributions!
 
-If you encounter any issues or need help, feel free to open an issue in this repository or reach out to me.
-
----
-
-# Disclaimer
-
-Flashing this kernel will void your warranty, and there is always a risk of bricking your device. Please make sure to back up your data and ensure you understand the risks before proceeding.
-
-**Proceed at your own risk!**
-
----
-
-[Telegram](https://t.me/TheWildJames)  
-[Telegram Group](https://t.me/WildKernels)  
-
-# Special thanks to the following people for their contributions!
 This helps me alot! <3
 
 [fatalcoder524](https://github.com/fatalcoder524) - Created Original Repository!  
@@ -96,3 +132,16 @@ This helps me alot! <3
 [Teemo](https://github.com/liqideqq) - Helped with patches!  
 
 If you have contributed and are not here please remind me!
+
+---
+
+## 🐛 Support & Issues
+
+If you encounter any issues, feel free to [open an issue](../../issues) in this repository.
+
+---
+
+## 📬 Contact
+
+- **GitHub:** [@sakfi](https://github.com/sakfi)
+- **Email:** ananno.sakib@gmail.com
