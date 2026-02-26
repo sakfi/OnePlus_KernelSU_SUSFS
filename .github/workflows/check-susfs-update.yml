@@ -1,0 +1,88 @@
+name: 🔍 Check SUSFS Update
+
+on:
+  workflow_dispatch:
+    inputs:
+      current_susfs_version:
+        description: 'Currently used SUSFS version (e.g. v2.0.0)'
+        required: true
+        default: 'v2.0.0'
+
+jobs:
+  check-susfs:
+    name: 🔍 Check for new SUSFS version
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🔍 Fetch latest SUSFS tag
+        id: fetch
+        run: |
+          LATEST_TAG=$(curl -s https://api.github.com/repos/simonpunk/susfs4ksu/tags \
+            | jq -r '.[0].name')
+          CURRENT="${{ inputs.current_susfs_version }}"
+          echo "Current SUSFS version : $CURRENT"
+          echo "Latest SUSFS version  : $LATEST_TAG"
+          echo "latest_tag=$LATEST_TAG" >> "$GITHUB_OUTPUT"
+          echo "current=$CURRENT" >> "$GITHUB_OUTPUT"
+          if [ "$LATEST_TAG" != "$CURRENT" ]; then
+            echo "update_available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "update_available=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: ✅ No update needed
+        if: steps.fetch.outputs.update_available == 'false'
+        run: |
+          echo "✅ Already on the latest SUSFS version: ${{ steps.fetch.outputs.current }}"
+
+      - name: 📢 Open GitHub Issue for SUSFS update
+        if: steps.fetch.outputs.update_available == 'true'
+        run: |
+          CURRENT="${{ steps.fetch.outputs.current }}"
+          LATEST="${{ steps.fetch.outputs.latest_tag }}"
+          TITLE="⬆️ SUSFS Update Available: $CURRENT → $LATEST"
+          BODY="### SUSFS Update Detected\n\n\
+          | Field | Value |\n\
+          |---|---|\n\
+          | **Current version** | \`$CURRENT\` |\n\
+          | **Latest version** | \`$LATEST\` |\n\
+          | **Upstream repo** | [simonpunk/susfs4ksu](https://gitlab.com/simonpunk/susfs4ksu) |\n\
+          | **Tags page** | [View tags](https://github.com/simonpunk/susfs4ksu/tags) |\n\n\
+          ### Action Required\n\
+          1. Review the changelog for \`$LATEST\` in the upstream repo.\n\
+          2. Update the \`DEFAULT_SUSFS_VERSION\` or branch map in \`action.yml\`.\n\
+          3. Test with one device before rolling out to all configs.\n\
+          4. Update \`SUSFS_BASE_VERSION\` in \`build-kernel-release.yml\` env block.\n\n\
+          *Auto-detected by the [SUSFS update checker](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})*"
+
+          # Check if issue already exists for this version
+          EXISTING=$(gh issue list --state open --label "susfs-update" \
+            --json title --jq ".[].title" | grep -F "$LATEST" || true)
+
+          if [ -z "$EXISTING" ]; then
+            gh issue create \
+              --title "$TITLE" \
+              --body "$(printf '%b' "$BODY")" \
+              --label "enhancement,susfs-update"
+            echo "📢 Issue created for SUSFS $LATEST"
+          else
+            echo "ℹ️  Issue for $LATEST already exists — skipping"
+          fi
+
+      - name: 📊 Summary
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" << EOF
+
+          ## 🔍 SUSFS Update Check Results
+
+          | | |
+          |---|---|
+          | Current version | \`${{ steps.fetch.outputs.current }}\` |
+          | Latest upstream | \`${{ steps.fetch.outputs.latest_tag }}\` |
+          | Update available | ${{ steps.fetch.outputs.update_available }} |
+
+          EOF
