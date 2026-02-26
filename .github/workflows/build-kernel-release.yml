@@ -535,7 +535,7 @@ jobs:
       REPO_OWNER: ${{ github.repository_owner }}
       REPO_NAME: ${{ github.event.repository.name }}
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      RELEASE_NAME: '*TEST BUILD* OnePlus Kernels With KernelSU Next & SUSFS v2.0.0 *TEST BUILD*'
+      RELEASE_NAME: 'OnePlus Kernels With KernelSU Next & SUSFS v2.0.0 — SakFi Edition'
       SUSFS_BASE_VERSION: 'v2.0.0'
     steps:
       - name: 📥 Checkout code
@@ -762,7 +762,7 @@ jobs:
           if [ -n "$KSUN_BRANCH" ]; then
             cat << EOF >> release_notes.md
           - **KernelSU Next Manager**  
-            → [GitHub Release](https://github.com/KernelSU-Next/KernelSU-Next/releases)
+            → [GitHub](https://github.com/KernelSU-Next/KernelSU-Next)
           EOF
           elif [ -n "$KSU_BRANCH" ]; then
             cat << EOF >> release_notes.md
@@ -770,18 +770,16 @@ jobs:
             → [GitHub Release](https://github.com/tiann/KernelSU/releases)
           EOF
           fi
-          cat << EOF >> release_notes.md
-          ### Community Managers
-          - **WildKSU Manager** (Recommended for additional features)  
-            → [GitHub Release](https://github.com/WildKernels/Wild_KSU/releases)
-          
+          cat <<EOF >> release_notes.md
           ### Required Module
           - **KSU SUSFS Module** (Required for SUSFS features)  
             → [GitHub Release](https://github.com/sidex15/ksu_module_susfs/releases)
           
-          ### Recomended Flasher
-          - **Kernel Flasher** (Required for flashing AnyKernel3 zips and backups and OTA)  
+          ### Recommended Flasher
+          - **Kernel Flasher** (Recommended for flashing AnyKernel3 ZIPs, backups and OTA)  
             → [GitHub Release](https://github.com/fatalcoder524/KernelFlasher/releases)
+          - **Horizon Kernel Flasher** (Alternative flasher)  
+            → [GitHub Release](https://github.com/libxzr/HorizonKernelFlasher/releases)
           
           ---
           
@@ -793,10 +791,10 @@ jobs:
           - Have root access using Magisk / KernelSU (Any forks) / Apatch.
           
           ### Via Kernel Flasher
-          1. Download the appropriate ZIP for your device.
-          2. Flash the ZIP file using Kernel Flasher.
+          1. Download the appropriate ZIP for your device from the Assets below.
+          2. Flash the ZIP file using Kernel Flasher or Horizon Kernel Flasher.
           3. Reboot system.
-          4. Install KernelSU-Next/WildSU Manager.
+          4. Install KernelSU-Next Manager.
           5. Install SUSFS module from manager.
           
           ---
@@ -804,16 +802,19 @@ jobs:
           ## 📜 Changelog
           
           ### This Release
-          - Updated SUSFS to v2.0.0.
-          - Added HMBIRD support for all sm8750 devices.
-          - Improved ccache build system.
-          - Enhanced SUSFS hiding capabilities.
-          - Added IP_SET and TTL support.
-          - Added TMPFS_XATTR and TMPFS_POSIX_ACL support for Mountify.
-          - Added Ptrace leak fix for kernels < 5.16.
-          - Compiler optimizations (${{ inputs.optimize_level }}).
-          - Additional General Optimisations.
-          - Wild_KSU Manager Support.
+          EOF
+          
+          # Auto-generate changelog from git commits since last tag
+          LAST_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          if [ -n "$LAST_TAG" ]; then
+            echo "Generating changelog since tag: $LAST_TAG"
+            git log "$LAST_TAG"..HEAD --pretty=format:"          - %s" --no-merges >> release_notes.md
+          else
+            echo "No previous tag found, using last 10 commits"
+            git log --pretty=format:"          - %s" --no-merges -10 >> release_notes.md
+          fi
+          
+          cat <<EOF >> release_notes.md
           
           ### Previous Releases
           See [Releases Page](${{ github.server_url }}/${{ github.repository }}/releases)
@@ -822,15 +823,20 @@ jobs:
           
           ## 🙏 Credits
           
-          - **KernelSU Next Team** - Root solution
-          - **KernelSU Team** - Root solution
-          - **simonpunk** - SUSFS development
-          - **OnePlus** - Kernel source code
-          - **Community Contributors** - Testing and feedback
+          - **[KernelSU-Next Team](https://github.com/KernelSU-Next/KernelSU-Next)** — Root solution
+          - **[tiann](https://github.com/tiann/KernelSU)** — KernelSU original
+          - **[simonpunk](https://gitlab.com/simonpunk/susfs4ksu)** — SUSFS development
+          - **[sidex15](https://github.com/sidex15)** — SUSFS Module
+          - **[fatalcoder524](https://github.com/fatalcoder524)** — Original repository
+          - **[WildKernels](https://github.com/WildKernels/OnePlus_KernelSU_SUSFS)** — Upstream fork
+          - **[backslashxx](https://github.com/backslashxx)** — Optimization patches
+          - **[Teemo / liqideqq](https://github.com/liqideqq)** — Optimization patches
+          - **OnePlus** — Kernel source code
+          - **Community** — Testing and feedback
           
           ---
           
-          **⚡ Built with ❤️ by the community**
+          **⚡ Built with ❤️ by [sakfi](https://github.com/sakfi)**
           
           EOF
           
