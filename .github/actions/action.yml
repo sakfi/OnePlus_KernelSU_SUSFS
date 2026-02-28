@@ -946,6 +946,12 @@ runs:
         if grep -q "mnt = mnt->mnt_parent" ./fs/proc/fd.c; then
           sed -i 's/for (; mnt->mnt_id >= DEFAULT_KSU_MNT_ID; mnt = mnt->mnt_parent) { }/for (; mnt->mnt_id >= DEFAULT_KSU_MNT_ID \&\& mnt->mnt_parent \&\& mnt != mnt->mnt_parent; mnt = mnt->mnt_parent) { }/g' ./fs/proc/fd.c
         fi
+        
+        # The SUS_MOUNT patch changes statfs_by_dentry(path->dentry, buf) to statfs_by_dentry(mnt->mnt.mnt_root, buf) universally.
+        # This breaks statfs in Recovery on ramdisks. We restore statfs_by_dentry(path->dentry, buf) for all non-user processes (like Recovery).
+        if grep -q "error = statfs_by_dentry(mnt->mnt.mnt_root, buf);" ./fs/statfs.c; then
+          sed -i 's/error = statfs_by_dentry(mnt->mnt.mnt_root, buf);/if (likely(susfs_is_current_proc_umounted_app())) { error = statfs_by_dentry(mnt->mnt.mnt_root, buf); } else { error = statfs_by_dentry(path->dentry, buf); }/g' ./fs/statfs.c
+        fi
 
         echo "✅ SUSFS patches applied"
         echo "::endgroup::"
