@@ -568,6 +568,7 @@ jobs:
   trigger-release:
     needs: [build]
     runs-on: ubuntu-latest
+    environment: Production-Release
     env:
       REPO_OWNER: ${{ github.repository_owner }}
       REPO_NAME: ${{ github.event.repository.name }}
@@ -594,6 +595,8 @@ jobs:
           fi
           echo "New tag: $NEW_TAG"
           echo "NEW_TAG=${NEW_TAG}" >> $GITHUB_ENV
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git tag "$NEW_TAG"
           git push origin "$NEW_TAG"
 
@@ -887,8 +890,7 @@ jobs:
           gh release create "${{ env.NEW_TAG }}" \
             --repo "${{ env.REPO_OWNER }}/${{ env.REPO_NAME }}" \
             --title "${{ env.RELEASE_NAME }}" \
-            --notes-file release_notes.md \
-            --draft
+            --notes-file release_notes.md
 
       - name: 📤 Upload Release Assets Dynamically
         run: |
