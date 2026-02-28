@@ -939,6 +939,14 @@ runs:
             fi
           fi
         done
+        # Fix OP15 Recovery Bootloop (SUS_MOUNT mnt_parent panic)
+        if grep -q "mnt = mnt->mnt_parent" ./fs/statfs.c; then
+          sed -i 's/for (; mnt->mnt_id >= DEFAULT_KSU_MNT_ID; mnt = mnt->mnt_parent) { }/for (; mnt->mnt_id >= DEFAULT_KSU_MNT_ID \&\& mnt->mnt_parent \&\& mnt != mnt->mnt_parent; mnt = mnt->mnt_parent) { }/g' ./fs/statfs.c
+        fi
+        if grep -q "mnt = mnt->mnt_parent" ./fs/proc/fd.c; then
+          sed -i 's/for (; mnt->mnt_id >= DEFAULT_KSU_MNT_ID; mnt = mnt->mnt_parent) { }/for (; mnt->mnt_id >= DEFAULT_KSU_MNT_ID \&\& mnt->mnt_parent \&\& mnt != mnt->mnt_parent; mnt = mnt->mnt_parent) { }/g' ./fs/proc/fd.c
+        fi
+
         echo "✅ SUSFS patches applied"
         echo "::endgroup::"
 
