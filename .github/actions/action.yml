@@ -939,6 +939,15 @@ runs:
             fi
           fi
         done
+        
+        echo "Applying OnePlus 15 Recovery Bootloop Fixes..."
+        # Fix 1: Add a safety check to the mnt->mnt_parent while loops in fs/statfs.c and fs/proc/fd.c to prevent infinite loops / panics in recovery
+        sed -i 's/for (; mnt->mnt_id >= DEFAULT_KSU_MNT_ID; mnt = mnt->mnt_parent) {\n/for (; mnt->mnt_id >= DEFAULT_KSU_MNT_ID \&\& mnt->mnt_parent \&\& mnt != mnt->mnt_parent; mnt = mnt->mnt_parent) {/g' ./fs/statfs.c
+        sed -i 's/for (; mnt->mnt_id >= DEFAULT_KSU_MNT_ID; mnt = mnt->mnt_parent) {\n/for (; mnt->mnt_id >= DEFAULT_KSU_MNT_ID \&\& mnt->mnt_parent \&\& mnt != mnt->mnt_parent; mnt = mnt->mnt_parent) {/g' ./fs/proc/fd.c
+        
+        # Fix 2: Restore original behavior for statfs in Recovery by conditionally checking if it is a umounted app, rather than doing it unconditionally for all processes
+        sed -i 's/error = statfs_by_dentry(mnt->mnt_root, buf);/if (susfs_is_current_proc_umounted_app(mnt)) { error = statfs_by_dentry(mnt->mnt_root, buf); } else { error = statfs_by_dentry(path->dentry, buf); }/g' ./fs/statfs.c
+        
         echo "✅ SUSFS patches applied"
         echo "::endgroup::"
 
