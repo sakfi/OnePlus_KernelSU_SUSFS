@@ -951,9 +951,9 @@ runs:
         
         # Fix 2: Restore original behavior for statfs in Recovery by conditionally checking if it is a umounted app, rather than doing it unconditionally for all processes
         if grep -q "error = statfs_by_dentry(mnt->mnt_root, buf);" ./fs/statfs.c; then
-          sed -i 's/error = statfs_by_dentry(mnt->mnt_root, buf);/if (likely(susfs_is_current_proc_umounted())) { error = statfs_by_dentry(mnt->mnt_root, buf); } else { error = statfs_by_dentry(path->dentry, buf); }/g' ./fs/statfs.c
+          sed -i 's/error = statfs_by_dentry(mnt->mnt_root, buf);/if (likely(susfs_is_current_proc_umounted_app())) { error = statfs_by_dentry(mnt->mnt_root, buf); } else { error = statfs_by_dentry(path->dentry, buf); }/g' ./fs/statfs.c
         elif grep -q "error = statfs_by_dentry(mnt->mnt.mnt_root, buf);" ./fs/statfs.c; then
-          sed -i 's/error = statfs_by_dentry(mnt->mnt.mnt_root, buf);/if (likely(susfs_is_current_proc_umounted())) { error = statfs_by_dentry(mnt->mnt.mnt_root, buf); } else { error = statfs_by_dentry(path->dentry, buf); }/g' ./fs/statfs.c
+          sed -i 's/error = statfs_by_dentry(mnt->mnt.mnt_root, buf);/if (likely(susfs_is_current_proc_umounted_app())) { error = statfs_by_dentry(mnt->mnt.mnt_root, buf); } else { error = statfs_by_dentry(path->dentry, buf); }/g' ./fs/statfs.c
         fi
         
         echo "✅ SUSFS patches applied"
