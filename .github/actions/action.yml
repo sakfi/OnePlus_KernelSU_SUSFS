@@ -667,7 +667,9 @@ runs:
         
         retry_clone "https://github.com/TheWildJames/AnyKernel3.git" "$ANYKERNEL_BRANCH"
         
-        # --- Patch AnyKernel3 flashing output for SakFi ---\n        echo "Patching AnyKernel3 flashing output..."\n
+        # --- Patch AnyKernel3 flashing output for SakFi ---
+        echo "Patching AnyKernel3 flashing output..."
+
         cat << 'EOF' > patch_anykernel.py
 import sys
 import re
