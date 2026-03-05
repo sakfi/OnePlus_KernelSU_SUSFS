@@ -75,12 +75,6 @@ on:
         type: choice
         options:
           - All
-          - Android 14
-          - Android 15
-          - Android 16
-          - Android 14+Android 15
-          - Android 14+Android 16
-          - Android 15+Android 16
           - oos14
           - oos15
           - oos16
@@ -207,24 +201,6 @@ jobs:
           case "$android_input" in
             "All")
               # No additional filtering needed
-              ;;
-            "Android 14")
-              android_jq_filter=" | map(select(.android_version == \"android14\"))"
-              ;;
-            "Android 15")
-              android_jq_filter=" | map(select(.android_version == \"android15\"))"
-              ;;
-            "Android 16")
-              android_jq_filter=" | map(select(.android_version == \"android16\"))"
-              ;;
-            "Android 14+Android 15")
-              android_jq_filter=" | map(select(.android_version == \"android14\" or .android_version == \"android15\"))"
-              ;;
-            "Android 14+Android 16")
-              android_jq_filter=" | map(select(.android_version == \"android14\" or .android_version == \"android16\"))"
-              ;;
-            "Android 15+Android 16")
-              android_jq_filter=" | map(select(.android_version == \"android15\" or .android_version == \"android16\"))"
               ;;
             "oos14")
               android_jq_filter=" | map(select(.os_version == \"OOS14\"))"
