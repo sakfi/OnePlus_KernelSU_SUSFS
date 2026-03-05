@@ -693,34 +693,23 @@ runs:
         sed -i 's/Wild Kernels by TheWildJames aka Morgan Weedman/SakFi OP Kernels by sakfi/g' "$AK3"
         sed -i 's/Wild Kernels Supported/SakFi Kernels Supported/g' "$AK3"
         
-        if [ -f "$AK3_UPDATE" ]; then
-          sed -i 's|ui_print " " "AnyKernel3 by osm0sis @ xda-developers" " ";|ui_print " " "AnyKernel3 by osm0sis @ xda-developers" " ";\nui_print "Wild Kernels by TheWildJames";\nui_print "\\& fatalcoder524";|g' "$AK3_UPDATE"
-        fi
+
         
-        cat << 'ASCIIEOF' > ascii_art.txt
-        ui_print "_nnnn_";
-        ui_print "dGGGGMMb     ,\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\".";
-        ui_print "@p~qp~~qMb    | SakFi OP Kernel  |";
-        ui_print "M|@||@) M|   _;..................'";
-        ui_print "@,----.JM| -'";
-        ui_print "JS^\\__/  qKL";
-        ui_print "dZP        qKRb";
-        ui_print "dZP          qKKb";
-        ui_print "fZP            SMMb";
-        ui_print "HZM            MMMM";
-        ui_print "FqM            MMMM";
-        ui_print "__| \".        |\\dS\"qML";
-        ui_print "|    `.       | `' \\Zq";
-        ui_print "_)      \\.___.,|     .'";
-        ui_print "\\____   )MMMMMM|   .'";
-        ui_print "`-'       `--' hjm";
-        ASCIIEOF
+        cat << 'BANNEREOF' > banner_box.txt
+        ui_print " ";
+        ui_print "***************************************";
+        ui_print "*                                     *";
+        ui_print "*          SakFi OP Kernel            *";
+        ui_print "*                                     *";
+        ui_print "*      Powered by KernelSU Next       *";
+        ui_print "*                                     *";
+        ui_print "***************************************";
+        ui_print " ";
+        ui_print "Done! Good Luck with your new Kernel!!";
+        BANNEREOF
         
-        cat ascii_art.txt >> "$AK3"
-        echo 'ui_print "Done! Good Luck with your new Kernel!!";' >> "$AK3"
-        
-        python3 -c "import re; f=open('$AK3', 'r'); c=f.read(); f.close(); c=re.sub(r'(ui_print \"\";\\s*){2,}', 'ui_print \"\";\\n', c); f=open('$AK3', 'w'); f.write(c)"
-        rm ascii_art.txt
+        cat banner_box.txt >> "$AK3"
+        rm banner_box.txt
         # --------------------------------------------------
         
         retry_clone "https://github.com/TheWildJames/kernel_patches.git"
