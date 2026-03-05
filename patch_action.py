@@ -61,7 +61,8 @@ workflow_patch = """        AK3="AnyKernel3/anykernel.sh"
         sed -i 's|https://github.com/WildKernels/OnePlus_KernelSU_SUSFS||g' "$AK3"
         sed -i 's/OnePlus kernels with KernelSU and SUSFS.//g' "$AK3"
         sed -i 's/Wild Kernels by TheWildJames aka Morgan Weedman/SakFi OP Kernels by sakfi/g' "$AK3"
-        sed -i 's/AnyKernel3 by osm0sis @ xda-developers/AnyKernel3 by osm0sis @ xda-developers\\nui_print "Wild Kernels by TheWildJames"\\nui_print "\\& fatalcoder524"/g' "$AK3"
+        sed -i '/ui_print "AnyKernel3 by osm0sis @ xda-developers";/a\        ui_print "Wild Kernels by TheWildJames";' "$AK3"
+        sed -i '/ui_print "Wild Kernels by TheWildJames";/a\        ui_print "\& fatalcoder524";' "$AK3"
         sed -i 's/Wild Kernels Supported/SakFi Kernels Supported/g' "$AK3"
         
         cat << 'ASCIIEOF' > ascii_art.txt
