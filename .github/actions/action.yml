@@ -666,6 +666,9 @@ runs:
         }
         
         retry_clone "https://github.com/sakfi/AnyKernel3.1.git" "$ANYKERNEL_BRANCH"
+        
+        # Rename directory to match workflow path dependencies
+        mv AnyKernel3.1 AnyKernel3
 
         
         retry_clone "https://github.com/TheWildJames/kernel_patches.git"
