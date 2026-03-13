@@ -841,6 +841,10 @@ runs:
               patch -p1 --forward < "$SUSFS_FOLDER/kernel_patches/KernelSU/10_enable_susfs_for_ksu.patch" || true
               echo "Applying KSUN fix patches for v2.0.0 (auto-detecting .rej files)..."
               for file in $(find ./kernel -maxdepth 2 -name "*.rej" -exec basename {} .rej \;); do
+                if [ "$file" = "rules" ]; then
+                  echo "Skipping rules.rej (fix_rules.patch not needed for v2.0.0)"
+                  continue
+                fi
                 echo "Patching file: $file with fix_$file.patch"
                 patch -p1 --forward < "$KERNEL_PATCHES_FOLDER/next/susfs_fix_patches/$susfs_version/fix_$file.patch"
               done
