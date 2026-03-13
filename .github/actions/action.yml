@@ -1,4 +1,5 @@
 name: 'Build OnePlus Kernel with KernelSU Next'
+description: 'Composite action to build OnePlus GKI kernels'
 
 inputs:
   op_config_json:
@@ -98,35 +99,36 @@ runs:
         rust_build="$OP_RUST_BUILD"
         lto="$OP_LTO"
         uname="$OP_UNAME"
+        unicode="$OP_UNICODE"
         optimize='${{ inputs.optimize_level }}'
-        
+
         errors=()
-        
+
         if [[ -z "$model" ]]; then
           errors+=("Input 'model' cannot be empty")
         elif [[ ! "$model" =~ ^OP ]]; then
           errors+=("Input 'model' does not start with 'OP'. Got: '$model'")
         fi
-        
+
         if [[ -z "$soc" ]]; then
           errors+=("Input 'soc' cannot be empty")
         elif [[ ! "$soc" =~ ^[A-Za-z0-9_-]+$ ]]; then
           errors+=("Input 'soc' contains invalid characters. Allowed: letters, digits, underscore, dash. Got: '$soc'")
         fi
-        
+
         if [[ -z "$branch" ]]; then
           errors+=("Input 'branch' cannot be empty")
         elif [[ ! "$branch" =~ ^[A-Za-z0-9._/-]+$ ]]; then
           errors+=("Input 'branch' contains invalid characters. Allowed: letters, digits, ., _, -, /. Got: '$branch'")
         fi
-        
+
         if [[ -z "$manifest" ]]; then
           errors+=("Input 'manifest' cannot be empty")
         elif [[ "$manifest" == http*://* ]]; then
           if [[ ! "$manifest" =~ ^https:// ]]; then
             errors+=("Manifest URL must be HTTPS. Got: '$manifest'")
           fi
-          if [[ ! "$manifest" =~ \.xml($|\?) ]]; then
+          if [[ ! "$manifest" =~ \.xml($|\\?) ]]; then
             errors+=("Manifest URL should point to an XML file (.xml). Got: '$manifest'")
           fi
         else
@@ -137,84 +139,90 @@ runs:
             errors+=("Manifest filename cannot contain spaces. Got: '$manifest'")
           fi
         fi
-        
+
         if [[ -z "$android_version" ]]; then
           errors+=("Input 'android_version' cannot be empty")
         elif [[ ! "$android_version" =~ ^android[0-9]+$ ]]; then
           errors+=("Input 'android_version' contains invalid characters. Allowed: android followed by a number. Got: '$android_version'")
         fi
-        
+
         if [[ -z "$kernel_version" ]]; then
           errors+=("Input 'kernel_version' cannot be empty")
         elif [[ ! "$kernel_version" =~ ^[0-9]+\.[0-9]+$ ]]; then
           errors+=("Input 'kernel_version' contains invalid characters. Allowed: number in X.Y format. Got: '$kernel_version'")
         fi
-        
+
         if [[ -z "$os_version" ]]; then
           errors+=("Input 'os_version' cannot be empty")
         elif [[ ! "$os_version" =~ ^OOS ]]; then
           errors+=("Input 'os_version' does not start with 'OOS'. Got: '$os_version'")
         fi
-        
+
         if [[ -z "$hmbird" ]]; then
           errors+=("Input 'hmbird' cannot be empty")
         elif [[ "$hmbird" != "true" && "$hmbird" != "false" ]]; then
           errors+=("Input 'hmbird' contains invalid characters. Allowed: 'true' or 'false'. Got: '$hmbird'")
         fi
-        
+
         if [[ -z "$susfs" ]]; then
           errors+=("Input 'susfs' cannot be empty")
         elif [[ "$susfs" != "true" && "$susfs" != "false" ]]; then
           errors+=("Input 'susfs' contains invalid characters. Allowed: 'true' or 'false'. Got: '$susfs'")
         fi
-        
+
         if [[ -z "$bbg" ]]; then
           errors+=("Input 'bbg' cannot be empty")
         elif [[ "$bbg" != "true" && "$bbg" != "false" ]]; then
           errors+=("Input 'bbg' contains invalid characters. Allowed: 'true' or 'false'. Got: '$bbg'")
         fi
-        
+
         if [[ -z "$bbr" ]]; then
           errors+=("Input 'bbr' cannot be empty")
         elif [[ "$bbr" != "true" && "$bbr" != "false" ]]; then
           errors+=("Input 'bbr' contains invalid characters. Allowed: 'true' or 'false'. Got: '$bbr'")
         fi
-        
+
         if [[ -z "$ttl" ]]; then
           errors+=("Input 'ttl' cannot be empty")
         elif [[ "$ttl" != "true" && "$ttl" != "false" ]]; then
           errors+=("Input 'ttl' contains invalid characters. Allowed: 'true' or 'false'. Got: '$ttl'")
         fi
-        
+
         if [[ -z "$ip_set" ]]; then
           errors+=("Input 'ip_set' cannot be empty")
         elif [[ "$ip_set" != "true" && "$ip_set" != "false" ]]; then
           errors+=("Input 'ip_set' contains invalid characters. Allowed: 'true' or 'false'. Got: '$ip_set'")
         fi
-        
+
         if [[ -z "$rust_build" ]]; then
           errors+=("Input 'rust_build' cannot be empty")
         elif [[ "$rust_build" != "true" && "$rust_build" != "false" ]]; then
           errors+=("Input 'rust_build' contains invalid characters. Allowed: 'true' or 'false'. Got: '$rust_build'")
         fi
-        
+
         if [[ -z "$lto" ]]; then
           errors+=("Input 'lto' cannot be empty")
         elif [[ "$lto" != "none" && "$lto" != "thin" && "$lto" != "full" ]]; then
           errors+=("Input 'lto' contains invalid characters. Allowed: 'thin', 'full' or 'none'. Got: '$lto'")
         fi
-        
+
         if [[ -z "$uname" ]]; then
           errors+=("Input 'uname' cannot be empty")
         elif [[ ${#uname} -gt 44 ]]; then
           errors+=("Input 'uname' too long. Maximum length: 44. Got: '$uname'")
         fi
-        
+
+        if [[ -z "$unicode" ]]; then
+          errors+=("Input 'unicode' cannot be empty")
+        elif [[ "$unicode" != "true" && "$unicode" != "false" ]]; then
+          errors+=("Input 'unicode' contains invalid characters. Allowed: 'true' or 'false'. Got: '$unicode'")
+        fi
+
         case "$optimize" in
           O2|O3) ;;
           *) errors+=("optimize_level must be O2 or O3. Got: '$optimize'"); ;;
         esac
-        
+
         if [ ${#errors[@]} -ne 0 ]; then
           echo "Found ${#errors[@]} validation error(s):" >&2
           for error in "${errors[@]}"; do
@@ -509,7 +517,7 @@ runs:
         echo "::endgroup::"
     
     - name: Cache ccache
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ${{ env.CCACHE_DIR }}
         key: ccache-ksun-v3-${{ env.OP_MODEL }}-${{ env.OP_OS_VERSION }}-${{ env.KERNEL_FULL_VER }}-${{ env.CLANG_VERSION_SHORT }}
@@ -522,16 +530,16 @@ runs:
       run: |
         set -euo pipefail
         echo "::group::Configure ccache for maximum performance"
-        
+
         export CCACHE_DIR="$HOME/.ccache"
         export CCACHE_MAXSIZE="1G"
-        
+
         ccache -M "$CCACHE_MAXSIZE"
-        
+
         export CCACHE_COMPILERCHECK="content"
         export CCACHE_BASEDIR="${GITHUB_WORKSPACE}"
         export CCACHE_NOHASHDIR="true"
-        
+
         ccache -o compression=true
         ccache -o compression_level=3
         ccache -o direct_mode=true
@@ -539,22 +547,22 @@ runs:
         ccache -o file_clone=true
         ccache -o inode_cache=true
         ccache -o umask=002
-        
+
         if ccache --help 2>&1 | grep -q 'depend_mode'; then
           ccache -o depend_mode=true
         fi
-        
+
         ccache -o sloppiness=file_macro,time_macros,include_file_mtime,include_file_ctime,pch_defines,system_headers,locale
-        
+
         export CCACHE_IGNOREOPTIONS="--sysroot*"
-        
+
         {
           echo "CCACHE_COMPILERCHECK=content"
           echo "CCACHE_BASEDIR=${GITHUB_WORKSPACE}"
           echo "CCACHE_NOHASHDIR=true"
           echo "CCACHE_IGNOREOPTIONS=$CCACHE_IGNOREOPTIONS"
         } >> "$GITHUB_ENV"
-        
+
         echo "✅ ccache configured for production"
         echo ""
         echo "Configuration applied:"
@@ -565,7 +573,7 @@ runs:
         echo "  File cloning: enabled"
         echo "  Inode cache: enabled"
         echo ""
-        
+
         if [ -d "$CCACHE_DIR" ] && find "$CCACHE_DIR" -type f -print -quit 2>/dev/null | grep -q .; then
           echo "✅ Restored cache found"
           echo ""
@@ -575,7 +583,7 @@ runs:
           echo "⚠️ No existing cache - building from scratch"
           echo "Cache will be populated for future builds"
         fi
-        
+
         echo "::endgroup::"
 
     - name: Handle Clean Build Option
@@ -598,13 +606,13 @@ runs:
         set -euo pipefail
         echo "::group::Clone dependencies"
         echo "Cloning AnyKernel3 and other dependencies..."
-        
+
         ANYKERNEL_BRANCH="gki-2.0"
-        
+
         if [ "${{ env.OP_SUSFS }}" = true ]; then
           # Determine SUSFS branch/commit to use
           SUSFS_INPUT="${{ inputs.susfs_commit_hash_or_branch }}"
-          
+
           # Default SUSFS branches for each kernel version
           declare -A DEFAULT_SUSFS=(
             ["android12-5.10"]="gki-android12-5.10"
@@ -613,7 +621,7 @@ runs:
             ["android15-6.6"]="gki-android15-6.6"
             ["android16-6.12"]="gki-android16-6.12"
           )
-          
+
           # Determine which SUSFS branch to use
           KERNEL_KEY="${{ env.ANDROID_VER }}-${{ env.KERNEL_VER }}"
           if [ -z "$SUSFS_INPUT" ] || [ "$SUSFS_INPUT" = "next" ]; then
@@ -626,13 +634,13 @@ runs:
             echo "🔧 Using custom SUSFS ref: $SUSFS_BRANCH"
           fi
         fi
-        
+
         echo "Using AnyKernel3 branch: $ANYKERNEL_BRANCH"
-        
+
         if [ "${{ env.OP_SUSFS }}" = true ]; then
           echo "Using SUSFS branch/commit: $SUSFS_BRANCH"
         fi
-        
+
         retry_clone() {
           local url="$1"
           local branch="${2:-main}"
@@ -640,39 +648,39 @@ runs:
           local dir="$(basename "$url" .git)"
           local max_attempts=3
           local attempt=1
-          
+
           # Build git clone args
           local clone_args=(--branch "$branch")
           if [ "$depth" != "0" ] && [ -n "$depth" ]; then
             clone_args+=(--depth "$depth")
           fi
-          
+
           while [ $attempt -le $max_attempts ]; do
             echo "🔄 Attempt $attempt/$max_attempts: cloning $url ($branch)${depth:+ [depth=$depth]}"
-            
+
             # Clone with dynamic args
             git clone "${clone_args[@]}" "$url" "$dir" && {
               echo "✅ Success"
               return 0
             }
-            
+
             echo "❌ Failed, cleaning up..."
             rm -rf "$dir" 2>/dev/null
             sleep $((attempt++ * 5))
           done
-          
+
           echo "💥 All attempts failed"
           return 1
         }
-        
+
         retry_clone "https://github.com/sakfi/AnyKernel3.1.git" "$ANYKERNEL_BRANCH"
-        
+
         # Rename directory to match workflow path dependencies
         mv AnyKernel3.1 AnyKernel3
 
-        
+
         retry_clone "https://github.com/TheWildJames/kernel_patches.git"
-        
+
         if [ "${{ env.OP_SUSFS }}" = true ]; then
           # Clone susfs4ksu targeting the correct branch directly.
           # If SUSFS_BRANCH looks like a commit hash, fall back to master+checkout.
@@ -690,13 +698,13 @@ runs:
             retry_clone "https://gitlab.com/simonpunk/susfs4ksu.git" "$SUSFS_BRANCH" 1
             cd susfs4ksu
           fi
-          
+
           SUSFS_COMMIT_SHA=$(git rev-parse HEAD)
           SUSFS_BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "detached")
-          
+
           echo "SUSFS_COMMIT_SHA=$SUSFS_COMMIT_SHA" >> $GITHUB_ENV
           echo "SUSFS_BRANCH_NAME=$SUSFS_BRANCH_NAME" >> $GITHUB_ENV
-          
+
           echo ""
           echo "✅ SUSFS checked out successfully"
           echo "   Branch/Ref: $SUSFS_BRANCH_NAME"
@@ -713,7 +721,9 @@ runs:
         cd "$KERNEL_PLATFORM_FOLDER"
         rm -f common/android/abi_gki_protected_exports_* || true
         rm -f msm-kernel/android/abi_gki_protected_exports_* || true
-        sed -i 's/protected_modules = \[.*\]/protected_modules = []/' common/modules.bzl || true
+        if [[ -f common/modules.bzl ]]; then
+          sed -i 's/protected_modules = \[.*\]/protected_modules = []/' common/modules.bzl || true
+        fi
         df -h
 
     - name: Add KernelSU Next
@@ -1090,10 +1100,30 @@ runs:
         patch -p1 -F3 --forward < "$KERNEL_PATCHES_FOLDER/common/silence_system_logspam.patch" || true
         echo "Patching use_unlikely_wrap_cpufreq.patch"
         patch -p1 -F3 --forward < "$KERNEL_PATCHES_FOLDER/common/use_unlikely_wrap_cpufreq.patch" || true
-        
-        
+
+        if [ "${{ env.OP_UNICODE }}" = true ]; then
+          echo "Patching Unicode Fix Patch"
+          patch -p1 -F 3 < "$KERNEL_PATCHES_FOLDER/common/unicode_fix.patch"
+        fi
+
         echo "✅ Other patches applied"
         echo "::endgroup::"
+
+    - name: Add IP SET & IPv6_NAT Support
+      if: ${{ env.OP_IP_SET == 'true' }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        echo "Add IP SET & IPv6_NAT Support"
+        cat >> "$COMMON_KERNEL_FOLDER/arch/arm64/configs/gki_defconfig" <<EOF
+        CONFIG_IP_SET_LIST_SET=y
+        CONFIG_NETFILTER_XT_MATCH_ADDRTYPE=y
+        CONFIG_NETFILTER_XT_SET=y
+        CONFIG_IP6_NF_NAT=y
+        CONFIG_IP6_NF_TARGET_MASQUERADE=y
+        EOF
+
+        patch -p1 -F 3 < "$KERNEL_PATCHES_FOLDER/common/IPv6_NAT_FIX.patch"
 
     - name: Apply KSU Hooks
       shell: bash
@@ -1476,29 +1506,29 @@ runs:
       run: |
         set -euo pipefail
         echo "::group::ccache final statistics"
-        
+
         export CCACHE_DIR="${{ env.CCACHE_DIR }}"
-        
+
         echo "ccache Statistics"
         ccache -s
-        
+
         STATS="$(ccache -s)"
-        
+
         CACHEABLE=$(echo "$STATS" | awk '/Cacheable calls:/ {
           match($0, /[0-9]+/); 
           print substr($0, RSTART, RLENGTH)
         }' | head -n1)
-        
+
         HITS=$(echo "$STATS" | awk '/^[[:space:]]*Hits:/ {
           match($0, /[0-9]+/); 
           print substr($0, RSTART, RLENGTH)
         }' | head -n1)
-        
+
         DIRECT=$(echo "$STATS" | awk '/Direct:/ {
           match($0, /[0-9]+/); 
           print substr($0, RSTART, RLENGTH)
         }' | head -n1)
-        
+
         if [ "${CACHEABLE:-0}" -gt 0 ]; then
           HIT_RATE=$(awk -v h="${HITS:-0
         }" -v c="$CACHEABLE" 'BEGIN{printf "%.1f", (h/c)*100}')
@@ -1507,17 +1537,19 @@ runs:
           HIT_RATE="0.0"
           DIRECT_RATE="0.0"
         fi
-        
+
         echo "hit_rate=${HIT_RATE}%" >> "$GITHUB_OUTPUT"
         echo "direct_rate=${DIRECT_RATE}%" >> "$GITHUB_OUTPUT"
-        
+
         echo "::endgroup::"
-        
+
         echo "## 📊 ccache Statistics" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo '```' >> $GITHUB_STEP_SUMMARY
         ccache -s >> $GITHUB_STEP_SUMMARY
         echo '```' >> $GITHUB_STEP_SUMMARY
+
+
 
     - name: Collect Build Stats / Validate Image
       id: collect_stats
@@ -1753,9 +1785,9 @@ runs:
 
     - name: Upload Artifacts
       if: success() && steps.create_zip.conclusion == 'success'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: kernel-${{ inputs.ksu_type }}-${{ env.CONFIG }}_${{ env.OP_OS_VERSION }}
         path: ${{ env.ARTIFACTS_FOLDER }}/
         compression-level: 0
-        retention-days: 20
+        retention-days: 7
