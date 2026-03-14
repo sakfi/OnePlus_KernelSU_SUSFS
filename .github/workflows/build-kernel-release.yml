@@ -1,4 +1,4 @@
-name: Build and Release OnePlus Kernels
+name: 🔨 Build and Release OnePlus Kernels
 
 permissions:
   contents: write
@@ -641,6 +641,7 @@ jobs:
   trigger-release:
     needs: [build]
     runs-on: ubuntu-latest
+    environment: Production-Release
     if: ${{ inputs.make_release }}
     env:
       REPO_OWNER: ${{ github.repository_owner }}
