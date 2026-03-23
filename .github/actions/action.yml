@@ -864,11 +864,19 @@ runs:
             if [ "${{ inputs.ksu_type }}" = "KSUN" ]; then
               cd "$KSUN_FOLDER"
               patch -p1 --forward < "$SUSFS_FOLDER/kernel_patches/KernelSU/10_enable_susfs_for_ksu.patch" || true
-              for file in $(find ./kernel -maxdepth 2 -name "*.rej" -exec basename {} .rej \;); do
+              for rej_file in $(find ./kernel -maxdepth 2 -name "*.rej"); do
+                file=$(basename "$rej_file" .rej)
                 patch_file="$KERNEL_PATCHES_FOLDER/next/susfs_fix_patches/$susfs_version/fix_$file.patch"
+                if [ ! -f "$patch_file" ]; then
+                  if [ "$file" = "Kbuild" ]; then
+                    patch_file="$KERNEL_PATCHES_FOLDER/next/susfs_fix_patches/$susfs_version/fix_Makefile.patch"
+                  elif [ "$file" = "Makefile" ]; then
+                    patch_file="$KERNEL_PATCHES_FOLDER/next/susfs_fix_patches/$susfs_version/fix_Kbuild.patch"
+                  fi
+                fi
                 if [ -f "$patch_file" ]; then
-                  echo "Patching file: $file with fix_$file.patch"
-                  patch -p1 --forward < "$patch_file"
+                  echo "Patching file: $file with $(basename "$patch_file")"
+                  patch "./kernel/$file" --forward < "$patch_file" || true
                 else
                   echo "⚠️ Skipping missing patch: fix_$file.patch"
                 fi
@@ -890,9 +898,22 @@ runs:
             if [ "${{ inputs.ksu_type }}" = "KSUN" ]; then
               cd "$KSUN_FOLDER"
               patch -p1 --forward < "$SUSFS_FOLDER/kernel_patches/KernelSU/10_enable_susfs_for_ksu.patch" || true
-              for file in $(find ./kernel -maxdepth 2 -name "*.rej" -exec basename {} .rej \;); do
-                echo "Patching file: $file with fix_$file.patch"
-                patch -p1 --forward < "$KERNEL_PATCHES_FOLDER/next/susfs_fix_patches/$susfs_version/fix_$file.patch"
+              for rej_file in $(find ./kernel -maxdepth 2 -name "*.rej"); do
+                file=$(basename "$rej_file" .rej)
+                patch_file="$KERNEL_PATCHES_FOLDER/next/susfs_fix_patches/$susfs_version/fix_$file.patch"
+                if [ ! -f "$patch_file" ]; then
+                  if [ "$file" = "Kbuild" ]; then
+                    patch_file="$KERNEL_PATCHES_FOLDER/next/susfs_fix_patches/$susfs_version/fix_Makefile.patch"
+                  elif [ "$file" = "Makefile" ]; then
+                    patch_file="$KERNEL_PATCHES_FOLDER/next/susfs_fix_patches/$susfs_version/fix_Kbuild.patch"
+                  fi
+                fi
+                if [ -f "$patch_file" ]; then
+                  echo "Patching file: $file with $(basename "$patch_file")"
+                  patch "./kernel/$file" --forward < "$patch_file" || true
+                else
+                  echo "⚠️ Skipping missing patch: fix_$file.patch"
+                fi
               done
               echo "Patching Hook Mode!"
               patch -p1 --forward < "$KERNEL_PATCHES_FOLDER/next/susfs_fix_patches/$susfs_version/overwrite_hook_mode.patch"
