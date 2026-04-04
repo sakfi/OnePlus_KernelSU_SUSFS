@@ -10,7 +10,7 @@
   <img src="https://readme-typing-svg.herokuapp.com?font=Fira+Code&weight=500&size=20&duration=3000&pause=1000&color=00FF99&center=true&vCenter=true&width=600&lines=An+Open+Source+Kernel;Integrated+With+KernelSU-Next+%2B+SUSFS;For+OnePlus+Devices;Maintained+by+SakFi" alt="Typing SVG" />
 </a>
 
-[![KernelSU](https://img.shields.io/badge/KernelSU-Not%20Supported-red)](https://kernelsu.org/)
+[![KernelSU](https://img.shields.io/badge/KernelSU-Not%20Supported-cb2431)](https://kernelsu.org/)
 [![KernelSU-Next](https://img.shields.io/badge/KernelSU_Next-Supported-green)](https://kernelsu-next.github.io/webpage/)
 [![Wild KSU](https://img.shields.io/badge/Wild_KSU-Supported-green)](https://github.com/WildKernels/Wild_KSU/)
 [![SUSFS](https://img.shields.io/badge/SUSFS_2.1-Integrated-orange)](https://gitlab.com/simonpunk/susfs4ksu)
