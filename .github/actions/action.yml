@@ -1747,7 +1747,7 @@ runs:
           
           awk '/\[UI_PRINT_START\]/{flag=1; next} /\[UI_PRINT_END\]/{flag=0; next} flag' "$BANNER_FILE" >> custom_banner.sh
           
-          awk -v f="$(cat custom_banner.sh)" '/^\. tools\/ak3-core\.sh;/{print $0; print ""; print f; next} 1' anykernel.sh > anykernel.sh.tmp
+          awk '/^\. tools\/ak3-core\.sh;?/{print $0; print ""; while((getline line < "custom_banner.sh") > 0) print line; close("custom_banner.sh"); next} 1' anykernel.sh > anykernel.sh.tmp
           mv anykernel.sh.tmp anykernel.sh
           rm -f custom_banner.sh banner
         fi
