@@ -979,6 +979,17 @@ jobs:
           
           | 🏷️ Feature | 📝 Description |
           |:---|:---|
+          EOF
+          if [ -n "$KSUN_BRANCH" ]; then
+            cat << EOF >> release_notes.md
+          | 🔐 **KernelSU-Next** | Next-generation kernel-level root solution |
+          EOF
+          elif [ -n "$KSU_BRANCH" ]; then
+            cat << EOF >> release_notes.md
+          | 🔐 **KernelSU** | Kernel-level root solution |
+          EOF
+          fi
+          cat << EOF >> release_notes.md
           | 🔐 **KernelSU-Next** | Next-generation kernel-level root solution |
           | 🥷 **SUSFS v2.1.0** | Advanced root hiding with Magic Mount support |
           | 🛠️ **Manual Hooks** | \`scope_min_manual_hooks_v1.4\` for better app compatibility |
@@ -1005,10 +1016,23 @@ jobs:
           ## 📱 Manager Applications
           
           ### Official Manager
+          EOF
+          if [ -n "$KSUN_BRANCH" ]; then
+            cat << EOF >> release_notes.md
           - **KernelSU Next Manager**  
             → [GitHub](https://github.com/KernelSU-Next/KernelSU-Next)
           - **Wild KernelSU Manager** (Alternative) 
             → [GitHub](https://github.com/WildKernels/KernelSU_Action/releases)
+          EOF
+          elif [ -n "$KSU_BRANCH" ]; then
+            cat << EOF >> release_notes.md
+          - **KernelSU Manager**  
+            → [GitHub Release](https://github.com/tiann/KernelSU/releases)
+          - **Wild KernelSU Manager** (Alternative)  
+            → [GitHub Release](https://github.com/WildKernels/KernelSU_Action/releases)
+          EOF
+          fi
+          cat <<EOF >> release_notes.md
           
           ### SusFS Module
           - **KSU SUSFS Module** (Required for SUSFS features)  
@@ -1044,16 +1068,19 @@ jobs:
           ## 📜 Changelog
           
           ### This Release
-          - Updated the kernels as per latest OnePlus updates
-          - Add OnePlus Pad 3 device support.
-          - Add OnePlus 15T device support.
-          - Add OnePlus Turbo 6V device support.
-          - Add OnePlus Turbo 6 device support.
-          - Add Oryon Optimizations for sm8750, sm8845 and sm8850 (Build using ZyC Clang 19 only for sm8750).
-          - Fix Patches updated.
-          - Workflow refactored.
-          - Added ZyC Clang support.
-          - Multi Sepolicy patch is applied.
+          EOF
+          
+          # Auto-generate changelog from git commits since last tag
+          LAST_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          if [ -n "$LAST_TAG" ]; then
+            echo "Generating changelog since tag: $LAST_TAG"
+            git log "$LAST_TAG"..HEAD --pretty=format:"          - %s" --no-merges >> release_notes.md
+          else
+            echo "No previous tag found, using last 10 commits"
+            git log --pretty=format:"          - %s" --no-merges -10 >> release_notes.md
+          fi
+          
+          cat <<EOF >> release_notes.md
           
           ### Previous Releases
           See [Releases Page](https://github.com/sakfi/OP_KSUN_FS/releases)
