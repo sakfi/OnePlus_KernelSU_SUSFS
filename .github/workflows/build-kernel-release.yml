@@ -107,6 +107,10 @@ on:
         description: 'Clean build (no ccache)'
         type: boolean
         default: false
+      enable_ntsync:
+        description: 'Install NTSync (For Linux 6.1+)'
+        type: boolean
+        default: false
       android12-5_10_susfs_branch_or_commit:
         description: 'Enter SusFS Branch or commit hash for android12-5.10'
         type: string
@@ -587,11 +591,11 @@ jobs:
             echo "::endgroup::"
           fi
 
-      - name: 🧹 Prepare op_config_json (without KSU fields)
+      - name: 🧹 Prepare op_config_json (without KSU fields, with extras)
         id: prepare_config
         shell: bash
         run: |
-          echo "config_json=$(jq -nc --argjson m '${{ toJSON(matrix) }}' '$m | del(.ksu_type, .ksu_hash, .ksu_resolved_hash)')" >> "$GITHUB_OUTPUT"
+          echo "config_json=$(jq -nc --argjson m '${{ toJSON(matrix) }}' --argjson ntsync ${{ inputs.enable_ntsync }} '$m | del(.ksu_type, .ksu_hash, .ksu_resolved_hash) | .ntsync = $ntsync')" >> "$GITHUB_OUTPUT"
 
       - name: 🔨 Build Kernel
         id: build

@@ -96,6 +96,7 @@ runs:
         bbr="$OP_BBR"
         ttl="$OP_TTL"
         ip_set="$OP_IP_SET"
+        ntsync="$OP_NTSYNC"
         rust_build="$OP_RUST_BUILD"
         lto="$OP_LTO"
         uname="$OP_UNAME"
@@ -177,6 +178,10 @@ runs:
           errors+=("Input 'bbg' cannot be empty")
         elif [[ "$bbg" != "true" && "$bbg" != "false" ]]; then
           errors+=("Input 'bbg' contains invalid characters. Allowed: 'true' or 'false'. Got: '$bbg'")
+        fi
+        
+        if [[ -n "$ntsync" && "$ntsync" != "true" && "$ntsync" != "false" ]]; then
+          errors+=("Input 'ntsync' contains invalid characters. Allowed: 'true' or 'false'. Got: '$ntsync'")
         fi
         
         if [[ -z "$bbr" ]]; then
@@ -1265,6 +1270,34 @@ runs:
         CONFIG_NET_SCH_FQ=y
         CONFIG_NET_SCH_FQ_CODEL=y
         EOF
+
+    - name: Add NTSync
+      if: ${{ env.OP_NTSYNC == 'true' }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        echo "::group::Add NTSync Support"
+        cd "$COMMON_KERNEL_FOLDER"
+        KERNEL_VERSION="${{ env.KERNEL_VER }}"
+        
+        NTSYNC_PATCH_DIR="$KERNEL_PATCHES_FOLDER/ntsync/$KERNEL_VERSION"
+        
+        if [ -d "$NTSYNC_PATCH_DIR" ]; then
+          for patch_file in "$NTSYNC_PATCH_DIR"/*.patch; do
+             if [ -f "$patch_file" ]; then
+               echo "Applying NTSync patch: $(basename "$patch_file")"
+               patch -p1 --forward < "$patch_file" || true
+             fi
+          done
+          
+          cat >> "$COMMON_KERNEL_FOLDER/arch/arm64/configs/gki_defconfig" <<EOF
+        CONFIG_NTSYNC=y
+        EOF
+          echo "✅ NTSync configured for $KERNEL_VERSION"
+        else
+          echo "::warning::NTSync patches not found for kernel $KERNEL_VERSION. Skipping."
+        fi
+        echo "::endgroup::"
 
     - name: Add TTL Target Support
       if: ${{ env.OP_TTL == 'true' }}
