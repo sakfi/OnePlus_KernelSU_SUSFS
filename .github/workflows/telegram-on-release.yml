@@ -9,43 +9,50 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Build Telegram message
+      - name: Send message to Telegram
+        env:
+          BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          GROUP_ID: ${{ secrets.TELEGRAM_GROUP }}
+          CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL }}
+          REL_NAME: ${{ github.event.release.name }}
+          REL_TAG: ${{ github.event.release.tag_name }}
+          REL_URL: ${{ github.event.release.html_url }}
+          REPO: ${{ github.repository }}
+          ACTION: ${{ github.event.action }}
         run: |
-          if [ "${{ github.event.action }}" = "published" ]; then
-            {
-              echo 'MESSAGE<<EOF'
-              echo '🚀 New release published'
-              echo
-              echo 'Repository: ${{ github.repository }}'
-              echo 'Tag: ${{ github.event.release.tag_name }}'
-              echo 'Title: ${{ github.event.release.name }}'
-              echo 'Release URL: ${{ github.event.release.html_url }}'
-              echo 'EOF'
-            } >> $GITHUB_ENV
-          elif [ "${{ github.event.action }}" = "edited" ]; then
-            {
-              echo 'MESSAGE<<EOF'
-              echo '✏️ Release updated'
-              echo
-              echo 'Repository: ${{ github.repository }}'
-              echo 'Tag: ${{ github.event.release.tag_name }}'
-              echo 'Title: ${{ github.event.release.name }}'
-              echo 'Release URL: ${{ github.event.release.html_url }}'
-              echo 'EOF'
-            } >> $GITHUB_ENV
-          else
-            echo "Unsupported release action: ${{ github.event.action }}"
-            exit 0
+          # Set message type
+          EMOJI="🚀"
+          STATUS="New release published"
+
+          if [ "$ACTION" = "edited" ]; then
+            EMOJI="✏️"
+            STATUS="Release updated"
           fi
 
-      - name: Send message to Telegram group
-        run: |
-          curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-            --data-urlencode "chat_id=${{ secrets.TELEGRAM_GROUP }}" \
-            --data-urlencode "text=$MESSAGE"
+          # Build message (HTML formatted)
+          MESSAGE=$(cat <<EOF
+<b>$EMOJI $STATUS</b>
 
-      - name: Send message to Telegram channel
-        run: |
-          curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-            --data-urlencode "chat_id=${{ secrets.TELEGRAM_CHANNEL }}" \
-            --data-urlencode "text=$MESSAGE"
+<b>Repository:</b> $REPO
+<b>Tag:</b> $REL_TAG
+<b>Title:</b> $REL_NAME
+<b>Link:</b> $REL_URL
+EOF
+          )
+
+          send_telegram() {
+            local chat_id="$1"
+            if [ -n "$chat_id" ]; then
+              echo "Sending to $chat_id..."
+              curl -X POST "https://api.telegram.org/bot$BOT_TOKEN/sendMessage" \
+                --data-urlencode "chat_id=$chat_id" \
+                --data-urlencode "text=$MESSAGE" \
+                --data-urlencode "parse_mode=HTML" \
+                -w "\n"
+            else
+              echo "Warning: Chat ID missing"
+            fi
+          }
+
+          send_telegram "$GROUP_ID"
+          send_telegram "$CHANNEL_ID"
