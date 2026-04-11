@@ -1,0 +1,36 @@
+name: Telegram on Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Send release message to Telegram group
+        run: |
+          MESSAGE="🚀 New release published
+
+Repository: ${{ github.repository }}
+Tag: ${{ github.event.release.tag_name }}
+Title: ${{ github.event.release.name }}
+Release URL: ${{ github.event.release.html_url }}"
+
+          curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            --data-urlencode "chat_id=${{ secrets.TELEGRAM_GROUP }}" \
+            --data-urlencode "text=$MESSAGE"
+
+      - name: Send release message to Telegram channel
+        run: |
+          MESSAGE="🚀 New release published
+
+Repository: ${{ github.repository }}
+Tag: ${{ github.event.release.tag_name }}
+Title: ${{ github.event.release.name }}
+Release URL: ${{ github.event.release.html_url }}"
+
+          curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            --data-urlencode "chat_id=${{ secrets.TELEGRAM_CHANNEL }}" \
+            --data-urlencode "text=$MESSAGE"
