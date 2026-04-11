@@ -31,13 +31,13 @@ jobs:
 
           # Build message (HTML formatted)
           MESSAGE=$(cat <<EOF
-<b>$EMOJI $STATUS</b>
-
-<b>Repository:</b> $REPO
-<b>Tag:</b> $REL_TAG
-<b>Title:</b> $REL_NAME
-<b>Link:</b> $REL_URL
-EOF
+          <b>$EMOJI $STATUS</b>
+          
+          <b>Repository:</b> $REPO
+          <b>Tag:</b> $REL_TAG
+          <b>Title:</b> $REL_NAME
+          <b>Link:</b> $REL_URL
+          EOF
           )
 
           send_telegram() {
