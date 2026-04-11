@@ -96,7 +96,7 @@ on:
         description: 'Enter KernelSU build json'
         required: true
         type: string
-        default: '[{"type":"ksun","hash":"dev"}]'
+        default: '[{"type":"ksun","hash":"cb559258dd04cd480e2bd8e0397b63c256c7b0d0"}]'
       optimize_level:
         description: "Compiler optimization level"
         required: true
@@ -114,23 +114,23 @@ on:
       android12-5_10_susfs_branch_or_commit:
         description: 'Enter SusFS Branch or commit hash for android12-5.10'
         type: string
-        default: ''      
+        default: '6b92a79fa6476f36aae81c6ec284a5cd4391d0d9'      
       android13-5_15_susfs_branch_or_commit:
         description: 'Enter SusFS Branch or commit hash for android13-5.15'
         type: string
-        default: ''      
+        default: '92b9a4977672181b7a9c462b5ee4c31e78a9aad1'      
       android14-6_1_susfs_branch_or_commit:
         description: 'Enter SusFS Branch or commit hash for android14-6.1'
         type: string
-        default: ''
+        default: 'ff05609254d5c9f90f1a815bc9fafed91338530c'
       android15-6_6_susfs_branch_or_commit:
         description: 'Enter SusFS Branch or commit hash for android15-6.6'
         type: string
-        default: ''
+        default: 'f2cc10c131760fd6d2cfeeef1b1135f02afb24b9'
       android16-6_12_susfs_branch_or_commit:
         description: 'Enter SusFS Branch or commit hash for android16-6.12'
         type: string
-        default: ''
+        default: '1fe81d23fa8c6b6039ea732c7bf1d787d38d9429'
 
 jobs:
   set-op-model:
