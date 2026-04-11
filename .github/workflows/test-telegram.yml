@@ -10,12 +10,16 @@ jobs:
     steps:
       - name: Send message to Telegram group
         run: |
-          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+          echo "Sending to group..."
+          curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
             --data-urlencode "chat_id=${{ secrets.TELEGRAM_GROUP }}" \
             --data-urlencode "text=✅ Test message from GitHub Actions to Telegram group"
+          echo ""
 
       - name: Send message to Telegram channel
         run: |
-          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+          echo "Sending to channel..."
+          curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
             --data-urlencode "chat_id=${{ secrets.TELEGRAM_CHANNEL }}" \
             --data-urlencode "text=✅ Test message from GitHub Actions to Telegram channel"
+          echo ""
