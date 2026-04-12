@@ -96,7 +96,7 @@ on:
         description: 'Enter KernelSU build json'
         required: true
         type: string
-        default: '[{"type":"ksun","hash":"dev"}]'
+        default: '[{"type":"ksun","hash":"cb559258dd04cd480e2bd8e0397b63c256c7b0d0"}]'
       optimize_level:
         description: "Compiler optimization level"
         required: true
@@ -107,26 +107,30 @@ on:
         description: 'Clean build (no ccache)'
         type: boolean
         default: false
+      enable_ntsync:
+        description: 'Install NTSync (For Linux 6.1+)'
+        type: boolean
+        default: false
       android12-5_10_susfs_branch_or_commit:
         description: 'Enter SusFS Branch or commit hash for android12-5.10'
         type: string
-        default: ''      
+        default: '6b92a79fa6476f36aae81c6ec284a5cd4391d0d9'      
       android13-5_15_susfs_branch_or_commit:
         description: 'Enter SusFS Branch or commit hash for android13-5.15'
         type: string
-        default: ''      
+        default: '92b9a4977672181b7a9c462b5ee4c31e78a9aad1'      
       android14-6_1_susfs_branch_or_commit:
         description: 'Enter SusFS Branch or commit hash for android14-6.1'
         type: string
-        default: ''
+        default: 'ff05609254d5c9f90f1a815bc9fafed91338530c'
       android15-6_6_susfs_branch_or_commit:
         description: 'Enter SusFS Branch or commit hash for android15-6.6'
         type: string
-        default: ''
+        default: 'f2cc10c131760fd6d2cfeeef1b1135f02afb24b9'
       android16-6_12_susfs_branch_or_commit:
         description: 'Enter SusFS Branch or commit hash for android16-6.12'
         type: string
-        default: ''
+        default: '1fe81d23fa8c6b6039ea732c7bf1d787d38d9429'
 
 jobs:
   set-op-model:
@@ -587,11 +591,11 @@ jobs:
             echo "::endgroup::"
           fi
 
-      - name: 🧹 Prepare op_config_json (without KSU fields)
+      - name: 🧹 Prepare op_config_json (without KSU fields, with extras)
         id: prepare_config
         shell: bash
         run: |
-          echo "config_json=$(jq -nc --argjson m '${{ toJSON(matrix) }}' '$m | del(.ksu_type, .ksu_hash, .ksu_resolved_hash)')" >> "$GITHUB_OUTPUT"
+          echo "config_json=$(jq -nc --argjson m '${{ toJSON(matrix) }}' --argjson ntsync ${{ inputs.enable_ntsync }} '$m | del(.ksu_type, .ksu_hash, .ksu_resolved_hash) | .ntsync = $ntsync')" >> "$GITHUB_OUTPUT"
 
       - name: 🔨 Build Kernel
         id: build
@@ -862,7 +866,7 @@ jobs:
           [![Workflow](https://img.shields.io/badge/Workflow-Build--Kernel-orange?style=flat-square)](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
           
           <a href="${{ github.server_url }}/${{ github.repository }}">
-            <img src="https://readme-typing-svg.herokuapp.com?font=Fira+Code&weight=500&size=20&duration=3000&pause=1000&color=00FF99&center=true&vCenter=true&width=600&lines=KernelSU-Next+%2B+SUSFS+Release;Built+for+OnePlus+GKI+devices;Version+${{ env.NEW_TAG }};Maintained+by+sakfi" alt="Typing SVG" />
+            <img src="https://readme-typing-svg.herokuapp.com?font=Fira+Code&weight=500&size=20&duration=3000&pause=1000&color=00FF99&center=true&vCenter=true&width=600&lines=KernelSU-Next+%2B+SUSFS+Release;Built+for+OnePlus+GKI+devices;Integrated+NTSync+%26+WireGuard;Version+${{ env.NEW_TAG }};Maintained+by+sakfi" alt="Typing SVG" />
           </a>
           
           > **Build Date:** $(date -u '+%Y-%m-%d %H:%M:%S UTC') | **Build ID:** \`${{ github.run_id }}\`
@@ -900,8 +904,10 @@ jobs:
               [[ "$bbr" == "true" ]] && features+="🚀 BBR "
               [[ "$bbg" == "true" ]] && features+="🛡️ BBG "
               [[ "$ttl" == "true" ]] && features+="🌐 TTL "
-              [[ "$ip_set" == "true" ]] && features+="🔧 IP_SET & IPv6 NAT"
-              [[ "$unicode" == "true" ]] && features+="🔧 Unicode Fix"
+              [[ "$ip_set" == "true" ]] && features+="🔧 IP_SET & IPv6 NAT "
+              [[ "$unicode" == "true" ]] && features+="🔧 Unicode Fix "
+              [[ "${{ inputs.enable_ntsync }}" == "true" ]] && [[ "$kernel_ver" == "6.1"* || "$kernel_ver" == "6.6"* || "$kernel_ver" == "6.12"* ]] && features+="🕹️ NTSync "
+              features+="🛂 WireGuard "
             fi
             
             printf "| %-13s | %-10s | %-16s | %-30s |\n" \
@@ -997,6 +1003,8 @@ jobs:
           | 🛡️ **BBG** | LSM-based Baseband Guard security |
           | 🌐 **TTL Target Support** | Network packet manipulation |
           | 🧱 **IP Set Support** | Advanced firewall capabilities |
+          | 🔄 **NTSync** | Universal NT synchronization primitives for gaming |
+          | 🛂 **WireGuard** | Fast, modern, and secure kernel-level VPN |
           | 🏗️ **HMBIRD SCX** | Scheduler extensions for SM8750 devices |
           | ✅ **LTO** | Link Time Optimization |
           | ⚡️ **TMPFS XATTR** | Extended attributes for Mountify support |
