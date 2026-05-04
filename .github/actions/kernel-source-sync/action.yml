@@ -162,14 +162,15 @@ runs:
                     print(f"Synced {name} successfully! ({duration:.2f}s)")
                     return True
                 except subprocess.CalledProcessError as e:
-                    print(f"  [RETRY {attempt}/{MAX_ATTEMPTS}] {name} failed with exit code {e.returncode}. Command: {e.cmd}")
-                    print(f"  [ERROR] Command failed for {name}: {e.cmd}")
-                    print(f"   Stderr: {e.stderr.decode() if e.stderr else 'No stderr'}")
+                    print(f"  [RETRY {attempt}/{MAX_ATTEMPTS}] {name} failed with exit code {e.returncode}.")
+                    if DEBUG:
+                        print(f"  [ERROR] Command: {e.cmd}")
+                        stderr_out = e.stderr.decode() if e.stderr else 'No captured stderr'
+                        print(f"  [ERROR] Stderr: {stderr_out}")
                     if attempt < MAX_ATTEMPTS:
                         time.sleep(5)
                 except Exception as e:
-                    print(f"  [RETRY {attempt}/{MAX_ATTEMPTS}] {name} failed with exit code {e.returncode}. Command: {e.cmd}")
-                    print(f"  [ERROR] Failed to sync {name}")
+                    print(f"  [RETRY {attempt}/{MAX_ATTEMPTS}] {name} failed with error: {str(e)}")
                     if attempt < MAX_ATTEMPTS:
                         time.sleep(5)
                 finally:
