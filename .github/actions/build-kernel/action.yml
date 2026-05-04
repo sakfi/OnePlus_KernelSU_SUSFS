@@ -33,11 +33,6 @@ inputs:
     required: false
     type: string
     default: O2
-  build_timestamp:
-    description: 'Custom kernel build timestamp shown in uname -a (e.g. "Tue Feb 10 10:01:02 UTC 2026"). Leave empty to use the current build time.'
-    required: false
-    type: string
-    default: ''
   clean:
     description: 'Force clean build without ccache acceleration'
     required: false
@@ -68,9 +63,6 @@ outputs:
   susfs_version:
     description: 'SUSFS version string'
     value: ${{ steps.save_metadata.outputs.susfs_version }}
-  build_timestamp:
-    description: 'Effective kernel build timestamp used in uname -a'
-    value: ${{ steps.save_metadata.outputs.build_timestamp }}
   image_sha256:
     description: 'SHA256 hash of kernel Image'
     value: ${{ steps.collect_stats.outputs.image_sha256 }}
