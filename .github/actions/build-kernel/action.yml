@@ -1,4 +1,5 @@
 name: 'Build OnePlus Kernel with KernelSU Next'
+description: 'Builds OnePlus kernel with KSU and SUSFS'
 
 inputs:
   op_config_json:
@@ -53,15 +54,15 @@ outputs:
   ksu_version:
     description: 'KernelSU version number'
     value: ${{ steps.save_metadata.outputs.ksu_version }}
+  build_timestamp:
+    description: 'Effective kernel build timestamp used in uname -a'
+    value: ${{ steps.save_metadata.outputs.build_timestamp }}
   ksu_type:
     description: 'KernelSU Variant'
     value: ${{ steps.save_metadata.outputs.ksu_type }}
   susfs_version:
     description: 'SUSFS version string'
     value: ${{ steps.save_metadata.outputs.susfs_version }}
-  build_timestamp:
-    description: 'Effective kernel build timestamp used in uname -a'
-    value: ${{ steps.save_metadata.outputs.build_timestamp }}
   image_sha256:
     description: 'SHA256 hash of kernel Image'
     value: ${{ steps.collect_stats.outputs.image_sha256 }}
@@ -109,9 +110,48 @@ runs:
       shell: bash
       run: |
         set -euo pipefail
+        
+        # 1. Start with Hardcoded Defaults
+        ntsync_def="true"
+        battery_def="true"
+        wireguard_def="true"
+        hmbird_def="false"
+        ds_def="false"
+        
+        # 2. Extract Device-Specific values from JSON
         echo '${{ inputs.op_config_json }}' > /tmp/config.json
-        jq -r 'to_entries[] | "OP_\(.key | ascii_upcase)=\(.value)"' /tmp/config.json >> "$GITHUB_ENV"
-        echo "Parsed config:"
+        JSON_NTSYNC=$(jq -r '.ntsync // empty' /tmp/config.json)
+        JSON_BATTERY=$(jq -r '.battery_opt // empty' /tmp/config.json)
+        JSON_WIREGUARD=$(jq -r '.wireguard // empty' /tmp/config.json)
+        JSON_HMBIRD=$(jq -r '.hmbird // empty' /tmp/config.json)
+        JSON_DS=$(jq -r '.ds // empty' /tmp/config.json)
+        
+        # 3. Apply Global Override Logic (Master Switches)
+        # If UI input is 'false', it's OFF globally.
+        # If UI input is 'true', we use JSON value (defaulting to system default if empty).
+        
+        [[ "${{ inputs.enable_ntsync }}" == "false" ]] && FINAL_NTSYNC="false" || FINAL_NTSYNC="${JSON_NTSYNC:-$ntsync_def}"
+        [[ "${{ inputs.enable_battery_opt }}" == "false" ]] && FINAL_BATTERY="false" || FINAL_BATTERY="${JSON_BATTERY:-$battery_def}"
+        [[ "${{ inputs.enable_wireguard }}" == "false" ]] && FINAL_WIREGUARD="false" || FINAL_WIREGUARD="${JSON_WIREGUARD:-$wireguard_def}"
+        
+        FINAL_HMBIRD="${JSON_HMBIRD:-$hmbird_def}"
+        FINAL_DS="${JSON_DS:-$ds_def}"
+
+        # 4. Export to Environment
+        echo "OP_NTSYNC=$FINAL_NTSYNC" >> "$GITHUB_ENV"
+        echo "OP_BATTERY_OPT=$FINAL_BATTERY" >> "$GITHUB_ENV"
+        echo "OP_WIREGUARD=$FINAL_WIREGUARD" >> "$GITHUB_ENV"
+        echo "OP_HMBIRD=$FINAL_HMBIRD" >> "$GITHUB_ENV"
+        echo "OP_DS=$FINAL_DS" >> "$GITHUB_ENV"
+        
+        # Final Export of other JSON keys (model, soc, etc.)
+        jq -r 'to_entries[] | select(.key != "ntsync" and .key != "battery_opt" and .key != "wireguard" and .key != "hmbird" and .key != "ds") | "OP_\(.key | ascii_upcase)=\(.value)"' /tmp/config.json >> "$GITHUB_ENV"
+        
+        echo "Parsed final features:"
+        echo "NTSync: $FINAL_NTSYNC (UI: ${{ inputs.enable_ntsync }})"
+        echo "Battery Opt: $FINAL_BATTERY (UI: ${{ inputs.enable_battery_opt }})"
+        echo "WireGuard: $FINAL_WIREGUARD (UI: ${{ inputs.enable_wireguard }})"
+        echo "Full Device Config:"
         jq '.' /tmp/config.json
 
     - name: Validate Inputs
@@ -367,11 +407,15 @@ runs:
         set -euo pipefail
         echo "::group::Restore toolchains from cache"
         
-        # 1. Parse the manifest for toolchain revisions
-        MANIFEST_PATH="$CONFIG_FOLDER/.repo/manifests/temp_manifest.xml"
-        if [ ! -f "$MANIFEST_PATH" ]; then
-          # Fallback to default manifest if temp one isn't found (unlikely)
-          MANIFEST_PATH="$CONFIG_FOLDER/.repo/manifest.xml"
+        # 1. Dynamically find the manifest file
+        # We search in the CONFIG_FOLDER for any manifest.xml or temp_manifest.xml
+        echo "🔍 Searching for manifest in $CONFIG_FOLDER ..."
+        MANIFEST_PATH=$(find "$CONFIG_FOLDER" -name "temp_manifest.xml" -o -name "manifest.xml" | head -n 1)
+        
+        if [ -z "$MANIFEST_PATH" ] || [ ! -f "$MANIFEST_PATH" ]; then
+          echo "⚠️ Manifest not found in $CONFIG_FOLDER. Skipping cache restoration and falling back to sync."
+          echo "::endgroup::"
+          exit 0
         fi
         
         echo "📂 Parsing manifest: $MANIFEST_PATH"
@@ -384,9 +428,9 @@ runs:
           ["prebuilts/build-tools"]="build-tools"
         )
         
-        # Extract projects and revisions using a simple grep/sed for speed
-        # Format in manifest: <project name="..." revision="..." />
-        projects=$(grep "<project " "$MANIFEST_PATH" | sed -n 's/.*name="\([^"]*\)".*revision="\([^"]*\)".*/\1|\2/p')
+        # Extract projects and revisions
+        # Using a more robust sed to handle various manifest formats
+        projects=$(grep "<project " "$MANIFEST_PATH" | sed -n 's/.*name="\([^"]*\)".*revision="\([^"]*\)".*/\1|\2/p' || true)
         
         for p in $projects; do
           NAME=$(echo "$p" | cut -d'|' -f1)
@@ -1695,7 +1739,7 @@ runs:
         
         make LD="$COMMON_KERNEL_FOLDER/ld-wrapper" HOSTLD="$COMMON_KERNEL_FOLDER/ld-wrapper" O="$OUT" gki_defconfig
         
-        LOCAL_LOCALVERSION="${CUSTOM_LOCALVERSION:--OP-WILD}"
+        LOCAL_LOCALVERSION="${CUSTOM_LOCALVERSION:--SakFi-OP}"
         if [ -n "${LOCAL_LOCALVERSION:-}" ]; then
           scripts/config --file "$OUT/.config" --set-str LOCALVERSION "${LOCAL_LOCALVERSION}"
           scripts/config --file "$OUT/.config" -d LOCALVERSION_AUTO || true
