@@ -4,22 +4,41 @@ permissions:
   contents: write
 
 on:
+  schedule:
+    - cron: '0 0 * * 0' # Every Sunday at 00:00 UTC
   workflow_dispatch:
     inputs:
       target_branch:
         description: 'Branch to scan for toolchain configs'
         required: true
-        default: 'main'
+        default: 'Testing'
         type: string
   workflow_call:
     inputs:
       target_branch:
         required: false
-        default: 'main'
+        default: 'Testing'
         type: string
 
 jobs:
+  determine-branches:
+    runs-on: ubuntu-latest
+    outputs:
+      branches: ${{ steps.set-branches.outputs.branches }}
+    steps:
+      - name: Set target branches
+        id: set-branches
+        run: |
+          if [ "${{ github.event_name }}" == "schedule" ]; then
+            echo "branches=[\"main\", \"Testing\", \"Beta-2\"]" >> "$GITHUB_OUTPUT"
+          else
+            BRANCH="${{ github.event.inputs.target_branch || inputs.target_branch || github.ref_name }}"
+            echo "branches=[\"$BRANCH\"]" >> "$GITHUB_OUTPUT"
+          fi
+
   prepare-release:
+    needs: determine-branches
+    runs-on: ubuntu-latest
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -50,28 +69,48 @@ jobs:
 
   generate-mirror-matrix:
     runs-on: ubuntu-latest
-    needs: prepare-release
+    needs: [determine-branches, prepare-release]
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
-      - name: Checkout Code
+      - name: Checkout Generator Scripts
         uses: actions/checkout@v6
-        with:
-          ref: ${{ github.event.inputs.target_branch || inputs.target_branch || github.ref_name }}
 
-      - name: Generate Mirror Matrix
-        id: generate-config
+      - name: Aggregate Configs from All Branches
+        id: aggregate-configs
         shell: bash
         run: |
           set -euo pipefail
+          mkdir -p all_branch_configs
           
+          BRANCHES_JSON='${{ needs.determine-branches.outputs.branches }}'
+          echo "Processing branches: $BRANCHES_JSON"
+          
+          # Use jq to iterate over the branches array
+          for branch in $(echo "$BRANCHES_JSON" | jq -r '.[]'); do
+            echo "📥 Fetching configs from branch: $branch"
+            mkdir -p "branch_$branch"
+            
+            # Use git checkout-index or sparse-checkout to get just the configs folder from the branch
+            # But for simplicity, we'll just use a shallow checkout of the branch
+            git fetch origin "$branch" --depth=1
+            git checkout "origin/$branch" -- configs/
+            
+            # Copy with branch prefix to avoid collisions if any
+            cp -r configs/* all_branch_configs/ || true
+          done
+          
+          # Create the aggregated JSON
           echo "[" > all_configs.json
-          mapfile -t files < <(find configs/ -name "*.json")
+          mapfile -t files < <(find all_branch_configs/ -name "*.json")
           for i in "${!files[@]}"; do
             cat "${files[$i]}" >> all_configs.json
             [[ $((i+1)) -lt ${#files[@]} ]] && echo "," >> all_configs.json
           done
           echo "]" >> all_configs.json
+          
+          echo "✅ Aggregated $(find all_branch_configs/ -name "*.json" | wc -l) configurations."
+
 
       - name: Resolve Unique Projects
         id: set-matrix
