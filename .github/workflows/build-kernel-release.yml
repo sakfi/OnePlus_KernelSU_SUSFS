@@ -7,38 +7,111 @@ permissions:
 on:
   workflow_dispatch:
     inputs:
-      make_release:
-        description: 'Do you want to create a release?'
-        required: true
-        type: boolean
-        default: false
       custom_release_tag:
         description: 'Provide a custom release tag (e.g., v2.0.0). Leave empty to auto-generate.'
         required: false
         type: string
         default: ''
       op_model:
-        description: 'Select the OnePlus kernels to build'
+        description: 'Select the OnePlus Devices to build'
         required: true
         type: choice
         options:
-          - OOS14+15+16
-          - OOS15+16
-          - OOS14+15
-          - OOS16
-          - OOS15
-          - OOS14
-          - android16-6.12
-          - android15-6.6
-          - android14-6.1
-          - android13-5.15
+          - All
+          - OP-ACE
+          - OP-ACE-2
+          - OP-ACE-2-PRO
+          - OP-ACE-2V
+          - OP-ACE-3
+          - OP-ACE-3-PRO
+          - OP-ACE-3V
+          - OP-ACE-5
+          - OP-ACE-5-PRO
+          - OP-ACE-5-RACE
+          - OP-ACE-5-ULTRA
+          - OP-ACE-6
+          - OP-ACE-6T
+          - OP-ACE-RACE
+          - OP-NORD-3
+          - OP-NORD-4
+          - OP-NORD-4-CE
+          - OP-NORD-5
+          - OP-NORD-CE-5
+          - OP-NORD-CE4-LITE
+          - OP-OPEN
+          - OP-PAD-2-MT6991
+          - OP-PAD-2-PRO
+          - OP-PAD-2-SM8650
+          - OP-PAD-3-MT6897
+          - OP-PAD-3-SM8750
+          - OP-PAD-GO-2
+          - OP-PAD-LITE
+          - OP-PAD-MT6983
+          - OP-PAD-PRO
+          - OP10pro
+          - OP10r
+          - OP10t
+          - OP11
+          - OP11r
+          - OP12
+          - OP12r
+          - OP13
+          - OP13-CPH
+          - OP13-PJZ
+          - OP13S
+          - OP13T
+          - OP13r
+          - OP15
+          - OP15r
+          - OP15T
+          - OP-TURBO-6
+          - OP-TURBO-6V
+        default: All
+      android_version_filter:
+        description: 'Select the Android Version to build'
+        required: true
+        type: choice
+        options:
+          - All
+          - oos14
+          - oos15
+          - oos16
+          - oos14+oos15
+          - oos15+oos16
+          - oos14+oos16
+        default: All
+      kernel_version_filter:
+        description: 'Select the Kernel Version to build'
+        required: true
+        type: choice
+        options:
+          - All
           - android12-5.10
-        default: OOS14+15+16
+          - android13-5.15
+          - android14-6.1
+          - android15-6.6
+          - android16-6.12
+        default: All
       ksu_options:
         description: 'Enter KernelSU build json'
         required: true
         type: string
-        default: '[{"type":"ksun","hash":"dev"}]'
+        default: '[{"type":"ksun","hash":"551ad80473f60e052917aec08abf5323b6ab2f7c"}]'
+      enable_wireguard:
+        description: '🛂 Global Master Switch: Enable WireGuard for all models'
+        required: true
+        type: boolean
+        default: true
+      enable_battery_opt:
+        description: '🔋 Global Master Switch: Enable Battery Optimization for all models'
+        required: true
+        type: boolean
+        default: true
+      enable_ntsync:
+        description: '🕹️ Global Master Switch: Enable NTSync for all models'
+        required: true
+        type: boolean
+        default: true
       optimize_level:
         description: "Compiler optimization level"
         required: true
@@ -49,16 +122,6 @@ on:
         description: 'Clean build (no ccache)'
         type: boolean
         default: false
-      debug:
-        description: 'Enable debug mode: dumping debug related artifacts and show some debug logs'
-        required: false
-        type: boolean
-        default: false
-      mirror_toolchains:
-        description: 'Do you want to sync toolchains before build? [99% runs not required]'
-        required: false
-        type: boolean
-        default: false
       build_timestamp:
         description: 'Custom kernel build timestamp for uname -a (e.g. "Tue Feb 10 10:01:02 UTC 2026"). Leave empty for current time.'
         type: string
@@ -66,23 +129,23 @@ on:
       android12-5_10_susfs_branch_or_commit:
         description: 'Enter SusFS Branch or commit hash for android12-5.10'
         type: string
-        default: ''
+        default: '674f72b6f683e837d7f557704cabe00a83eeb0b4'      
       android13-5_15_susfs_branch_or_commit:
         description: 'Enter SusFS Branch or commit hash for android13-5.15'
         type: string
-        default: ''
+        default: 'eaa5d299dd85a4230f936b94dc5dd8303f27130a'      
       android14-6_1_susfs_branch_or_commit:
         description: 'Enter SusFS Branch or commit hash for android14-6.1'
         type: string
-        default: ''
+        default: '971cc4e770b7f344a4df35ce92d7a859e6a1e0fd'
       android15-6_6_susfs_branch_or_commit:
         description: 'Enter SusFS Branch or commit hash for android15-6.6'
         type: string
-        default: ''
+        default: '85bcfac5edc8ba7808581e8d0a3ca9c7deca78e4'
       android16-6_12_susfs_branch_or_commit:
         description: 'Enter SusFS Branch or commit hash for android16-6.12'
         type: string
-        default: ''
+        default: '5fbf04e8c6c08b8ca759e0ac81bed7d2dc96f7f8'
 
 jobs:
   set-op-model:
@@ -142,48 +205,56 @@ jobs:
           jq_filter="."
           
           case "$input" in
-            OOS14+15+16)
-              ;;
-            OOS15+16)
-              jq_filter="map(select(.os_version == \"OOS15\" or .os_version == \"OOS16\"))"
-              ;;
-            OOS14+15)
-              jq_filter="map(select(.os_version == \"OOS14\" or .os_version == \"OOS15\"))"
-              ;;
-            OOS16)
-              jq_filter="map(select(.os_version == \"OOS16\"))"
-              ;;
-            OOS15)
-              jq_filter="map(select(.os_version == \"OOS15\"))"
-              ;;
-            OOS14)
-              jq_filter="map(select(.os_version == \"OOS14\"))"
-              ;;
-            android*-*.*)
-              # Extract android version and kernel version
-              IFS='-' read -r av kv <<< "$input"
-              
-              # Build android*-* only for OOS15 and OOS16
-              jq_filter="map(select(.os_version == \"OOS15\" or .os_version == \"OOS16\")) | map(select(.android_version == \"$av\" and .kernel_version == \"$kv\"))"
-              
-              echo "ℹ️  Android-Kernel filter applied: $av-$kv"
-              echo "   Restricted to: OOS15 and OOS16 only"
+            All)
               ;;
             *)
-              echo "::warning::Unknown input '$input'. Using empty filter."
-              jq_filter="map(select(false))"
+              echo "ℹ️  Device-specific filter applied: $input"
+              jq_filter="map(select(.model == \"$input\"))"
               ;;
           esac
           
-          filtered=$(jq -c "$jq_filter" matrix.json)
-          count=$(jq 'length' <<<"$filtered")
+          android_input="${{ github.event.inputs.android_version_filter }}"
+          android_jq_filter=""
           
-          filtered=$(echo "$filtered" | jq '
-            sort_by(
-              (.os_version | gsub("OOS"; "") | tonumber) * -1,
-              .model
-            )
-          ')
+          case "$android_input" in
+            "All")
+              # No additional filtering needed
+              ;;
+            "oos14")
+              android_jq_filter=" | map(select(.os_version == \"OOS14\"))"
+              ;;
+            "oos15")
+              android_jq_filter=" | map(select(.os_version == \"OOS15\"))"
+              ;;
+            "oos16")
+              android_jq_filter=" | map(select(.os_version == \"OOS16\"))"
+              ;;
+            "oos14+oos15" | "oos15+oos14")
+              android_jq_filter=" | map(select(.os_version == \"OOS14\" or .os_version == \"OOS15\"))"
+              ;;
+            "oos15+oos16" | "oos16+oos15")
+              android_jq_filter=" | map(select(.os_version == \"OOS15\" or .os_version == \"OOS16\"))"
+              ;;
+            "oos14+oos16" | "oos16+oos14")
+              android_jq_filter=" | map(select(.os_version == \"OOS14\" or .os_version == \"OOS16\"))"
+              ;;
+            *)
+              echo "::warning::Unknown Android version filter '$android_input'."
+              ;;
+          esac
+
+          kernel_input="${{ github.event.inputs.kernel_version_filter }}"
+          kernel_jq_filter=""
+          
+          if [[ "$kernel_input" != "All" ]]; then
+            IFS='-' read -r ak_android ak_kernel <<< "$kernel_input"
+            kernel_jq_filter=" | map(select(.android_version == \"$ak_android\" and .kernel_version == \"$ak_kernel\"))"
+            echo "ℹ️  Kernel version filter applied: $kernel_input"
+          fi
+
+          combined_filter="${jq_filter}${android_jq_filter}${kernel_jq_filter}"
+          filtered=$(jq -c "$combined_filter" matrix.json)
+          count=$(jq 'length' <<<"$filtered")
           
           if [ "$count" -eq 0 ]; then
             echo "::error::No config files found for input '$input' after applying filters!"
@@ -196,16 +267,20 @@ jobs:
           echo "$filtered" | jq '.' > matrix.json
           
           # For each device + each ksu option → one combined entry
-          merged_matrix=$(jq -n --argjson devices "$filtered" --argjson ksu_list "$ksu_options_normalized" '[ $devices[] as $dev | $ksu_list[] as $ksu | ($dev + {ksu_type: $ksu.type, ksu_hash: $ksu.hash}) ]')
+          merged_matrix=$(jq -n --argjson devices "$filtered" --argjson ksu_list "$ksu_options_normalized" \
+            '[ $devices[] as $dev | $ksu_list[] as $ksu | ($dev + {ksu_type: $ksu.type, ksu_hash: $ksu.hash}) ]')
+          
+          # Sort matrix by OOS version (OOS16 -> OOS15 -> OOS14)
+          merged_matrix=$(echo "$merged_matrix" | jq -c 'sort_by(.os_version) | reverse')
           
           final_count=$(echo "$merged_matrix" | jq 'length')
           
           echo "✅ Found $final_count device(s) to build"
           echo ""
-          echo "Selected devices:"
+          echo "Selected devices (Sorted by OOS version):"
           jq -r '.[] | "  - \(.model) (\(.os_version), \(.android_version)-\(.kernel_version), \(.ksu_type) - \(.ksu_hash))"' <<<"$merged_matrix"
           
-          echo "count=$count" >> "$GITHUB_OUTPUT"
+          echo "count=$final_count" >> "$GITHUB_OUTPUT"
           
           ksu_type=$(echo "$ksu_options_normalized" | jq -r '.[0].type')
           ksu_ref=$(echo "$ksu_options_normalized" | jq -r '.[0].hash')
@@ -646,6 +721,9 @@ jobs:
         uses: ./.github/actions/build-kernel
         with:
           op_config_json: ${{ steps.prepare_config.outputs.config_json }}
+          enable_wireguard: ${{ github.event.inputs.enable_wireguard }}
+          enable_battery_opt: ${{ github.event.inputs.enable_battery_opt }}
+          enable_ntsync: ${{ github.event.inputs.enable_ntsync }}
           ksu_type: ${{ matrix.ksu_type }}
           ksu_branch_or_hash: ${{ matrix.ksu_resolved_hash }}
           susfs_commit_hash_or_branch: ${{ matrix.susfs_resolved_hash }}
@@ -795,6 +873,7 @@ jobs:
     needs: [set-op-model, build]
     runs-on: ubuntu-latest
     if: ${{ inputs.make_release }}
+    environment: Production-Release
     env:
       REPO_OWNER: ${{ github.repository_owner }}
       REPO_NAME: ${{ github.event.repository.name }}
@@ -891,6 +970,13 @@ jobs:
           IFS=',' read -ra active_gki_keys \
             <<< "${{ needs.set-op-model.outputs.active_gki_keys }}"
           
+          if [ ${#device_info[@]} -gt 0 ]; then
+            first_entry=$(printf '%s\n' "${!device_info[@]}" | sort | head -n1)
+            IFS='|' read -r _ _ _ _ ksu_ver_global _ <<< "${device_info[$first_entry]}"
+          else
+            ksu_ver_global="unknown"
+          fi
+
           cat << EOF > release_notes.md
           <div align="center">
             <img src="https://readme-typing-svg.herokuapp.com?font=Fira+Code&weight=500&size=20&duration=3000&pause=1000&color=00FF99&center=true&vCenter=true&width=600&lines=KernelSU-Next+%2B+SUSFS+Release;Built+for+OnePlus+GKI+devices;Version+${{ env.NEW_TAG }};Maintained+by+sakfi" alt="Typing SVG" />
@@ -904,16 +990,14 @@ jobs:
           
           ---
           
-          ## 📦 Built Devices (${#device_info[@]} total)
+          <details>
+          <summary><b>📦 View Built Devices (${#device_info[@]} total)</b></summary>
           
           | Model | OS Version | Kernel Version | Features |
           |-------|------------|----------------|----------|
-          EOF
-          
-          for full_key in $(printf '%s\n' "${!device_info[@]}" | sort); do
+          $(for full_key in $(printf '%s\n' "${!device_info[@]}" | sort); do
             IFS='|' read -r model os_ver kernel_ver _ _ _ <<< "${device_info[$full_key]}"
             
-            # Use jq to extract feature flags for this model from the JSON matrix
             feature_flags=$(jq -r --arg MODEL "$model" '
               .[] | 
               select(.model == $MODEL) |
@@ -921,101 +1005,37 @@ jobs:
             ' <<< "$JSON_BUILD_DATA")
             
             features=()
-             # If no match found, skip or handle error
-            if [[ -z "$feature_flags" ]]; then
-              echo "Warning: No JSON entry found for model: $model" >&2
-              features_str="N/A"
-            else
+            if [[ -n "$feature_flags" ]]; then
               IFS=$'\t' read -r hmbird susfs bbr bbg ttl ip_set unicode ds ntsync <<< "$feature_flags"
-              
-              # Build features string based on boolean values
               [[ "$hmbird" == "true" ]] && features+=("🐦 HMBIRD")
               [[ "$susfs" == "true" ]] && features+=("ඞ SusFS")
               [[ "$bbr" == "true" ]] && features+=("🚀 BBR")
               [[ "$bbg" == "true" ]] && features+=("🛡️ BBG")
               [[ "$ttl" == "true" ]] && features+=("🌐 TTL")
-              [[ "$ip_set" == "true" ]] && features+=("🧱 IP_SET & IPv6 NAT")
-              [[ "$unicode" == "true" ]] && features+=("🔧 Unicode Fix")
+              [[ "$ip_set" == "true" ]] && features+=("🧱 IP_SET")
+              [[ "$unicode" == "true" ]] && features+=("🔧 Unicode")
               [[ "$ds" == "true" ]] && features+=("💻 Droidspaces")
               [[ "$ntsync" == "true" ]] && features+=("🔃 NTSync")
-              
-              total=${#features[@]}
-              if [ $total -eq 0 ]; then
-                features_str="N/A"
-              else
-                features_str=""
-                count=0
-                
-                for item in "${features[@]}"; do
-                  count=$((count + 1))
-                  
-                  features_str+="$item"
-                  
-                  if [ $count -lt $total ]; then
-                    if [ $((count % 3)) -eq 0 ]; then
-                      features_str+="<br>"
-                    else
-                      features_str+="   "
-                    fi
-                  fi
-                done
-              fi
             fi
             
-            printf "| %-13s | %-10s | %-16s | %-48s |\n" \
-              "$model" "$os_ver" "$kernel_ver" "$features_str" >> release_notes.md
-          done
+            features_str=$(IFS=' '; echo "${features[*]:-N/A}")
+            printf "| %-13s | %-10s | %-16s | %-48s |\n" "$model" "$os_ver" "$kernel_ver" "$features_str"
+          done)
           
-          if [ ${#device_info[@]} -gt 0 ]; then
-            first_entry=$(printf '%s\n' "${!device_info[@]}" | sort | head -n1)
-            IFS='|' read -r _ _ _ _ ksu_ver_global _ <<< "${device_info[$first_entry]}"
-          else
-            echo "::error::No device info found!" >&2
-            exit 1
-          fi
-          
-          cat << EOF >> release_notes.md
+          </details>
           
           ---
           
-          ## 🔧 Build Configuration
+          <details>
+          <summary><b>🔧 View Build Configuration</b></summary>
           
           | Component | Version/Setting |
           |-----------|----------------|
-          EOF
-          # Display function: hash → direct hash, branch → branch (hash)
-          ksu_display_value() {
-            local input="$1"
-            local resolved="$2"
-            if [[ "$input" =~ ^[0-9a-f]{40}$ ]]; then
-              echo "$input"
-            else
-              echo "$input ($resolved)"
-            fi
-          }
-          
-          ksu_display=$(ksu_display_value "$ksu_ref" "$ksu_resolved_hash")
-          if [ "$ksu_type" == "KSUN" ]; then
-            cat << EOF >> release_notes.md
-          | **KernelSU Next Branch** | \`$ksu_display\` |
+          | **KernelSU Next Branch** | \`${ksu_ref} (${ksu_resolved_hash:0:7})\` |
           | **KernelSU Next Version** | \`$ksu_ver_global\` |
-          EOF
-          elif [ "$ksu_type" == "KSU" ]; then
-            cat << EOF >> release_notes.md
-          | **KernelSU Branch** | \`$ksu_display\` |
-          | **KernelSU Version** | \`$ksu_ver_global\` |
-          EOF
-          else
-            cat << EOF >> release_notes.md
-          | **Unknown KernelSU Fork Branch** | \`\` |
-          | **Unknown KernelSU Fork Version** | \`\` |
-          EOF
-          fi
-          cat << EOF >> release_notes.md
           | **SUSFS Version** | \`$SUSFS_BASE_VERSION\` |
           | **Optimization Level** | \`$OPTIMIZE_LEVEL\` |
-          | **Clean Build** | $( [ "$CLEAN_BUILD" = "true" ] && echo "✅ Yes (no ccache)" || echo "❌ No (ccache enabled)" ) |
-          | **Compiler** | Clang (version varies by device) |
+          | **Clean Build** | $( [ "$CLEAN_BUILD" = "true" ] && echo "✅ Yes" || echo "❌ No" ) |
           
           ### 📌 SUSFS Branch Mapping
           
@@ -1025,141 +1045,98 @@ jobs:
             echo "| $key | \`${susfs_map[$key]:-unknown}\` |"
           done)
           
+          </details>
+          
           ---
           
           ## ✨ Features & Capabilities
           
-          ### 🔐 Root Management
-          EOF
-          if [ "$ksu_type" == "KSUN" ]; then
-            cat << EOF >> release_notes.md
-          - **KernelSU Next** - Next-generation kernel-level root solution
-          EOF
-          elif [ "$ksu_type" == "KSU" ]; then
-            cat << EOF >> release_notes.md
-          - **KernelSU** - Kernel-level root solution
-          EOF
-          fi
-          cat << EOF >> release_notes.md
-          - **SUSFS $SUSFS_BASE_VERSION** - Advanced hiding and security features
-          EOF
-          if [ "$ksu_type" == "KSUN" ] && [ "${ksu_ver_global:-0}" -lt 12884 ]; then
-            cat << EOF >> release_notes.md
-          - **Magic Mount Support** - Seamless file system modifications
-          EOF
-          fi
-          if [ "${ksu_ver_global:-0}" -lt 12884 ]; then
-            cat << EOF >> release_notes.md
-          - **Manual Hooks** - scope_min_manual_hooks_v1.4 for better compatibility
-          EOF
-          fi
-          cat << EOF >> release_notes.md
-          ### 🛡️ Security & Privacy
-          - **Baseband Guard (BBG)** - LSM-based baseband security
-          - **SUSFS Hide Features**:
-            - ✅ SUS_PATH - Hide suspicious paths
-            - ✅ SUS_MOUNT - Hide mount points (No Cli Support)
-            - ✅ SUS_KSTAT - Spoof kernel statistics
-            - ✅ SPOOF_UNAME - Kernel version spoofing
-            - ✅ SPOOF_CMDLINE - Boot parameters spoofing
-            - ✅ OPEN_REDIRECT - File access redirection
-            - ✅ SUS_MAP - Memory mapping protection
-            - ✅ AVC_SPOOF - Spoof Procfs avc denial logs
-          - **Ptrace Leak Fix** - For kernels < 5.16
-          - **Unicode Fix** - Prevent path traversal and other detections using non-printable Unicode codepoints [Experimental]
+          | 🏷️ Feature | 📝 Description |
+          |:---|:---|
+          | 🔐 **KernelSU-Next** | Next-generation kernel-level root solution |
+          | 🥷 **SUSFS v2.1.0** | Advanced root hiding with Magic Mount support |
+          | 💻 **Droidspaces** | SYSVIPC support for multi-instance app environments |
+          | 🔃 **NTSync** | Fast wine synchronization primitives for emulation |
+          | 🛠️ **Manual Hooks** | \`scope_min_manual_hooks_v1.4\` for better app compatibility |
+          | 🖧 **BBR** | Improved TCP congestion control |
+          | 🛡️ **BBG** | LSM-based Baseband Guard security |
+          | 🌐 **TTL Target Support** | Network packet manipulation |
+          | 🧱 **IP Set Support** | Advanced firewall capabilities |
+          | 🏗️ **HMBIRD SCX** | Scheduler extensions for SM8750 devices |
+          | ✅ **LTO** | Link Time Optimization |
+          | ⚡️ **TMPFS XATTR** | Extended attributes for Mountify support |
+          | 🚀 **Optimization** | Memory, I/O, CPU scheduler, network tuning patches |
+          | 🔋 **Battery** | Multi-patch suite for power efficiency and wakelock reduction |
+          | 🛂 **WireGuard** | Fast, modern, and secure kernel-level VPN |
           
-          ### 🚀 Performance & Networking
-          - **BBRv1** - Improved TCP congestion control
-          - **Wireguard** - Built-in VPN support
-          - **IP Set & IPv6 NAT Support** - Advanced firewall capabilities and IPv6 NAT Support
-          - **TTL Target Support** - Network packet manipulation
-          - **LTO (Link Time Optimization)** - Optimized binary size and performance
-          - **ccache-accelerated builds** - Faster compilation times
-          - **Optimisation Patches** - Memory, I/O, CPU scheduler, network and other general tunings
+          <br>
           
-          ### 🔧 System Features
-          - **TMPFS_XATTR** - Extended attributes for tmpfs (Mountify support)
-          - **TMPFS_POSIX_ACL** - POSIX ACLs for tmpfs
-          - **HMBIRD SCX** - Scheduler extensions for all SM8750/MT6991 devices
-          - **Droidspaces** - Support Portable Linux containers to run full Linux environments.
-          - **NTSync** - Provide high-performance, low-latency synchronization primitives compatible with the Windows NT kernel API
+          <details>
+          <summary><b>👀 View SUSFS Hide Capabilities</b></summary>
+          
+          - ✅ SUS_PATH · SUS_MOUNT · SUS_KSTAT · SUS_MAP
+          - ✅ SPOOF_UNAME · SPOOF_CMDLINE · OPEN_REDIRECT · AVC_SPOOF
+          </details>
           
           ---
           
           ## 📱 Manager Applications
           
           ### Official Manager
-          EOF
-          if [ "$ksu_type" == "KSUN" ]; then
-            cat << EOF >> release_notes.md
           - **KernelSU Next Manager**  
-            → [GitHub Release](https://github.com/KernelSU-Next/KernelSU-Next/releases)
-          EOF
-          elif [ "$ksu_type" == "KSU" ]; then
-            cat << EOF >> release_notes.md
-          - **KernelSU Manager**  
-            → [GitHub Release](https://github.com/tiann/KernelSU/releases)
-          EOF
-          fi
-          cat << EOF >> release_notes.md
-          ### Community Managers
-          - **WildKSU Manager** (Recommended for additional features)  
-            → [GitHub Release](https://github.com/WildKernels/Wild_KSU/releases)
+            → [GitHub](https://github.com/KernelSU-Next/KernelSU-Next)
           
-          ### Required Module
+          ### SusFS Module
           - **KSU SUSFS Module** (Required for SUSFS features)  
             → [GitHub Release](https://github.com/sidex15/ksu_module_susfs/releases)
           
-          ### Recomended Flasher
-          - **Kernel Flasher** (Required for flashing AnyKernel3 zips and backups and OTA)  
+          ### Recommended Flasher
+          - **Kernel Flasher** (Recommended for flashing AnyKernel3 ZIPs, backups and OTA)  
             → [GitHub Release](https://github.com/fatalcoder524/KernelFlasher/releases)
+          - **KSUN Built-in Flasher** (Alternative flasher)  
+            → Accessible directly within the KernelSU Next Manager app
           
           ---
           
           ## 📥 Installation Instructions
           
-          ### Prerequisites
+          <details>
+          <summary><b>🛠️ View Prerequisites</b></summary>
+          
           - Unlocked bootloader.
           - Backup your current boot image.
-          - Have root access using Magisk / KernelSU / Apatch (Any forks).
+          - Have root access using Magisk / KernelSU (Any forks) / Apatch.
+          </details>
           
           ### Via Kernel Flasher
-          1. Download the correct AnyKernel3 ZIP for your device.
-          2. If you previously used another root method, clean it up first:
-              a. **Magisk**: perform a complete uninstall **after flashing the AnyKernel3 ZIP**.
-              b. **KSU LKM (boot/init_boot/vendor_boot patched)**: Flash back the stock boot/init_boot/vendor_boot depending on what you patched.
-              c. **KSU GKI**: if you are 100% sure you already flashed stock init_boot/boot/vendor_boot, no action is needed; otherwise, follow the same steps as KSU LKM.
-              d. **APatch**: remove /data/adb contents to avoid leftover root conflicts **after flashing the AnyKernel3 ZIP**.
-          3. Flash the ZIP to the active slot using Kernel Flasher.
-          4. Install the KernelSU-Next Manager APK, same version as mentioned in the AnyKernel3 ZIP name.
-          5. Open the KernelSU-Next app.
-          6. Reboot the device if you performed any cleanup in step 2.
+          1. Download the appropriate ZIP for your device from the Assets below.
+          2. Flash the ZIP file using [Kernel Flasher](https://github.com/fatalcoder524/KernelFlasher) or [Horizon Kernel Flasher](https://github.com/libxzr/HorizonKernelFlasher).
+          3. Reboot system.
+          4. Install KernelSU-Next Manager (or KernelSU Manager depending on build).
+          5. Install SUSFS module from manager.
           
           ---
           
           ## 📜 Changelog
           
           ### This Release
-          - Updated SUSFS to $SUSFS_BASE_VERSION.
-          - Added HMBIRD support for all SM8750/MT6991 devices.
-          - Improved ccache build system.
-          - Enhanced SUSFS hiding capabilities.
-          - Added IP_SET, IPv6 NAT and TTL support.
-          - Added TMPFS_XATTR and TMPFS_POSIX_ACL support for Mountify.
-          - Added Ptrace leak fix for kernels < 5.16.
-          - Compiler optimizations (${{ inputs.optimize_level }}).
-          - Additional General Optimisations.
-          - Wild_KSU Manager Support.
-          - Unicode Bypass Fix
-          - Droidspaces Support
-          - NTSync Support
+          $(
+            PREV_TAG=$(gh api repos/$REPO_OWNER/$REPO_NAME/tags --jq '.[0].name' 2>/dev/null || true)
+            if [ -n "$PREV_TAG" ]; then
+              git log "$PREV_TAG..HEAD" --oneline --pretty=format:"- %s (%h)"
+            else
+              git log --oneline --pretty=format:"- %s (%h)" -n 15
+            fi
+          )
           
           ### Previous Releases
-          See [Releases Page](${{ github.server_url }}/${{ github.repository }}/releases)
+          See [Releases Page](https://github.com/sakfi/OP_KSUN_FS/releases)
           
           ---
           
-          ## 🙏 Credits
+          ## 🌟 Special Thanks
+          
+          These amazing people help make this project possible! ❤️
           
           <div align="center">
           
@@ -1189,7 +1166,6 @@ jobs:
           **🚀 Built with ❤️ by [sakfi](https://github.com/sakfi)**
           
           </div>
-          
           EOF
           
           echo "--- Final Release Notes ---"
