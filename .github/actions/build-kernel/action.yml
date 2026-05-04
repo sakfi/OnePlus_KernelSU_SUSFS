@@ -407,11 +407,15 @@ runs:
         set -euo pipefail
         echo "::group::Restore toolchains from cache"
         
-        # 1. Parse the manifest for toolchain revisions
-        MANIFEST_PATH="$CONFIG_FOLDER/.repo/manifests/temp_manifest.xml"
-        if [ ! -f "$MANIFEST_PATH" ]; then
-          # Fallback to default manifest if temp one isn't found (unlikely)
-          MANIFEST_PATH="$CONFIG_FOLDER/.repo/manifest.xml"
+        # 1. Dynamically find the manifest file
+        # We search in the CONFIG_FOLDER for any manifest.xml or temp_manifest.xml
+        echo "🔍 Searching for manifest in $CONFIG_FOLDER ..."
+        MANIFEST_PATH=$(find "$CONFIG_FOLDER" -name "temp_manifest.xml" -o -name "manifest.xml" | head -n 1)
+        
+        if [ -z "$MANIFEST_PATH" ] || [ ! -f "$MANIFEST_PATH" ]; then
+          echo "⚠️ Manifest not found in $CONFIG_FOLDER. Skipping cache restoration and falling back to sync."
+          echo "::endgroup::"
+          exit 0
         fi
         
         echo "📂 Parsing manifest: $MANIFEST_PATH"
@@ -424,9 +428,9 @@ runs:
           ["prebuilts/build-tools"]="build-tools"
         )
         
-        # Extract projects and revisions using a simple grep/sed for speed
-        # Format in manifest: <project name="..." revision="..." />
-        projects=$(grep "<project " "$MANIFEST_PATH" | sed -n 's/.*name="\([^"]*\)".*revision="\([^"]*\)".*/\1|\2/p')
+        # Extract projects and revisions
+        # Using a more robust sed to handle various manifest formats
+        projects=$(grep "<project " "$MANIFEST_PATH" | sed -n 's/.*name="\([^"]*\)".*revision="\([^"]*\)".*/\1|\2/p' || true)
         
         for p in $projects; do
           NAME=$(echo "$p" | cut -d'|' -f1)
