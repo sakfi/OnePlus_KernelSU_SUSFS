@@ -101,17 +101,17 @@ on:
         description: '🛂 Global Master Switch: Enable WireGuard for all models'
         required: true
         type: boolean
-        default: true
+        default: false
       enable_battery_opt:
         description: '🔋 Global Master Switch: Enable Battery Optimization for all models'
         required: true
         type: boolean
-        default: true
+        default: false
       enable_ntsync:
         description: '🕹️ Global Master Switch: Enable NTSync for all models'
         required: true
         type: boolean
-        default: true
+        default: false
       optimize_level:
         description: "Compiler optimization level"
         required: true
