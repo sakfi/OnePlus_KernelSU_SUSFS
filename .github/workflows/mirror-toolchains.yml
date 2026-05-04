@@ -5,7 +5,18 @@ permissions:
 
 on:
   workflow_dispatch:
+    inputs:
+      target_branch:
+        description: 'Branch to scan for toolchain configs'
+        required: true
+        default: 'Testing'
+        type: string
   workflow_call:
+    inputs:
+      target_branch:
+        required: false
+        default: 'Testing'
+        type: string
 
 jobs:
   prepare-release:
@@ -14,6 +25,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
         with:
+          ref: ${{ github.event.inputs.target_branch || inputs.target_branch || github.ref_name }}
           fetch-depth: 0
 
       - name: Ensure Single Release
@@ -44,6 +56,8 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.inputs.target_branch || inputs.target_branch || github.ref_name }}
 
       - name: Generate Mirror Matrix
         id: generate-config
