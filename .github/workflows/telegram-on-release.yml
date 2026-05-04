@@ -1,4 +1,4 @@
-name: Telegram on Release
+name: 📢 Telegram on Release
 
 on:
   release:
