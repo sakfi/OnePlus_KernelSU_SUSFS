@@ -43,6 +43,11 @@ inputs:
     required: false
     type: boolean
     default: false
+  install_ccache_ecs:
+    description: 'Install ccache‑ECS and use RAM staging (Level 3 opt)'
+    required: false
+    type: boolean
+    default: false
   github_token:
     description: 'GitHub Token'
     required: true
@@ -488,7 +493,8 @@ runs:
         DEBUG_ZIP_NAME="debug_${OP_MODEL}_${OP_OS_VERSION}.zip"
         echo "DEBUG_ZIP_NAME=$DEBUG_ZIP_NAME" >> "$GITHUB_ENV"
 
-    - name: 🚀 Install ccache-ECS and setup Staging RAM Disk
+    - name: 🚀 Install ccache‑ECS and setup Staging RAM Disk
+      if: ${{ inputs.install_ccache_ecs == 'true' }}
       shell: bash
       run: |
         set -euo pipefail

@@ -101,17 +101,17 @@ on:
         description: '🛂 Global Master Switch: Enable WireGuard for all models'
         required: true
         type: boolean
-        default: true
+        default: false
       enable_battery_opt:
         description: '🔋 Global Master Switch: Enable Battery Optimization for all models'
         required: true
         type: boolean
-        default: true
+        default: false
       enable_ntsync:
         description: '🕹️ Global Master Switch: Enable NTSync for all models'
         required: true
         type: boolean
-        default: true
+        default: false
       optimize_level:
         description: "Compiler optimization level"
         required: true
@@ -867,7 +867,7 @@ jobs:
   trigger-release:
     needs: [set-op-model, build-oos16, build-oos15, build-oos14]
     runs-on: ubuntu-latest
-    if: ${{ always() && inputs.make_release && !cancelled() && !failed() }}
+    if: ${{ always() && inputs.make_release && !cancelled() && !failure() }}
     environment: ${{ (github.ref_name == 'main' && 'Production-Release') || '' }}
     env:
       REPO_OWNER: ${{ github.repository_owner }}
