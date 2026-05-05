@@ -1473,8 +1473,10 @@ runs:
         elif [ -f "$NTSYNC_FOLDER/ntsync_compat_${GKI_KEY}.patch" ]; then
           NTSYNC_PATCH="$NTSYNC_FOLDER/ntsync_compat_${GKI_KEY}.patch"
         else
-          echo "::error::NTSync patch not found for ${GKI_KEY} (Model: ${OP_MODEL}, OOS: ${OP_OS_VERSION})"
-          exit 1
+          echo "::warning::NTSync patch not found for ${GKI_KEY} (Model: ${OP_MODEL}, OOS: ${OP_OS_VERSION}). Skipping feature."
+          echo "✅ NTSync feature skipped (patch missing)"
+          echo "::endgroup::"
+          exit 0
         fi
         
         echo "Using patch: $(basename $NTSYNC_PATCH)"
