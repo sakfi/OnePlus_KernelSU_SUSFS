@@ -1,8 +1,8 @@
-name: Telegram on Release
+name: 📢 Telegram on Release
 
 on:
   release:
-    types: [edited]
+    types: [published, released, edited]
 
 jobs:
   notify:
@@ -17,20 +17,33 @@ jobs:
           REL_NAME: ${{ github.event.release.name }}
           REL_TAG: ${{ github.event.release.tag_name }}
           REL_URL: ${{ github.event.release.html_url }}
+          REL_BODY: ${{ github.event.release.body }}
           REPO: ${{ github.repository }}
         run: |
           # Set message type
-          EMOJI="✏️"
-          STATUS="Release updated"
+          EMOJI="🚀"
+          STATUS="New Release Published"
+          if [[ "${{ github.event.action }}" == "edited" ]]; then
+            EMOJI="✏️"
+            STATUS="Release Notes Updated"
+          fi
+
+          # Clean up changelog for Telegram (limit length)
+          BODY=$(echo "$REL_BODY" | head -c 1000)
+          if [[ ${#REL_BODY} -gt 1000 ]]; then BODY="${BODY}..."; fi
 
           # Build message (HTML formatted)
           MESSAGE=$(cat <<EOF
           <b>$EMOJI $STATUS</b>
           
-          <b>Repository:</b> $REPO
-          <b>Tag:</b> $REL_TAG
+          <b>Project:</b> <code>$REPO</code>
+          <b>Version:</b> <code>$REL_TAG</code>
           <b>Title:</b> $REL_NAME
-          <b>Link:</b> $REL_URL
+          
+          <b>Changelog:</b>
+          <pre>$BODY</pre>
+          
+          🔗 <a href="$REL_URL">View on GitHub</a>
           EOF
           )
 
