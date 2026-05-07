@@ -4,6 +4,11 @@ on:
   release:
     types: [published, released, edited]
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Release tag to notify (e.g., v2.0.6)'
+        required: false
+        type: string
   workflow_call:
 
 jobs:
@@ -16,18 +21,36 @@ jobs:
           BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           GROUP_ID: ${{ secrets.TELEGRAM_GROUP }}
           CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL }}
-          REL_NAME: ${{ github.event.release.name }}
-          REL_TAG: ${{ github.event.release.tag_name }}
-          REL_URL: ${{ github.event.release.html_url }}
-          REL_BODY: ${{ github.event.release.body }}
+          REL_NAME: ${{ github.event.release.name || '' }}
+          REL_TAG: ${{ github.event.release.tag_name || github.event.inputs.release_tag || '' }}
+          REL_URL: ${{ github.event.release.html_url || '' }}
+          REL_BODY: ${{ github.event.release.body || '' }}
           REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # Handle manual trigger or missing data
+          if [ -z "$REL_NAME" ] && [ -n "$REL_TAG" ]; then
+            echo "Manual trigger for tag: $REL_TAG"
+            RELEASE_DATA=$(gh release view "$REL_TAG" --json name,body,url --repo "$REPO")
+            REL_NAME=$(echo "$RELEASE_DATA" | jq -r .name)
+            REL_BODY=$(echo "$RELEASE_DATA" | jq -r .body)
+            REL_URL=$(echo "$RELEASE_DATA" | jq -r .url)
+          fi
+
+          if [ -z "$REL_TAG" ]; then
+            echo "Error: No release tag provided and no release event data found."
+            exit 1
+          fi
+
           # Set message type
           EMOJI="🚀"
           STATUS="New Release Published"
           if [[ "${{ github.event.action }}" == "edited" ]]; then
             EMOJI="✏️"
             STATUS="Release Notes Updated"
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            EMOJI="📢"
+            STATUS="Manual Notification"
           fi
 
           # Clean up changelog for Telegram (strip HTML tags and limit length)
